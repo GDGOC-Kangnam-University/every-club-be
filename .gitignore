@@ -1,16 +1,34 @@
-# Compiled class file
-*.class
+# --- OS/IDE 공통 ---
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+.project
+.classpath
+.settings/
+out/
 
-# Log file
+# --- Logs & JVM dumps ---
 *.log
+hs_err_pid*
+replay_pid*
+*.hprof
 
-# BlueJ files
-*.ctxt
+# --- Build artifacts ---
+# Gradle
+.gradle/
+build/
+# Maven
+target/
+# Wrapper 캐시 (커밋 X) - wrapper 스크립트/설정파일은 커밋 O
+# gradle-wrapper.jar / maven-wrapper.jar는 보통 커밋하지만,
+# 로컬 캐시는 제외
+.mvn/wrapper/maven-wrapper.jar
 
-# Mobile Tools for Java (J2ME)
-.mtj.tmp/
-
-# Package Files #
+# --- Archives / Packages ---
 *.jar
 *.war
 *.nar
@@ -19,6 +37,14 @@
 *.tar.gz
 *.rar
 
-# virtual machine crash logs, see http://www.java.com/en/download/help/error_hotspot.xml
-hs_err_pid*
-replay_pid*
+# --- Java toolings ---
+*.class
+.mtj.tmp/
+*.ctxt  # BlueJ
+
+# --- Env/Secrets ---
+# 예: application-secret.yml, application-secret-dev.yml 등
+*-secret*.yml
+# 선택: .env 류 사용 시
+.env
+.env.*
