@@ -1,3 +1,8 @@
 spring:
   application:
     name: every-club
+springdoc:
+  api-docs:
+    path: /openapi.json
+  swagger-ui:
+    path: /docs
