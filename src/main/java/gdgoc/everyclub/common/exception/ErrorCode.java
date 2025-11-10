@@ -6,7 +6,6 @@ import org.springframework.http.HttpStatus;
 
 /**
  * 행동 가능성(Actionability) 기준 에러 코드
- *
  * - VALIDATION: 요청 수정으로 해결 (400)
  * - AUTH: 로그인/토큰 갱신 필요 (401)
  * - ACCESS: 권한/정책 문제 (403)
