@@ -4,5 +4,3 @@ spring:
 springdoc:
   api-docs:
     path: /openapi.json
-  swagger-ui:
-    path: /docs

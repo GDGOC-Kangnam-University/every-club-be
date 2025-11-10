@@ -10,10 +10,9 @@ import org.springframework.context.annotation.Configuration;
 class OpenApiConfig {
     @Bean
     public OpenAPI openAPI() {
-        var info = new Info()
-                .title("EveryClub API");
         return new OpenAPI()
                 .components(new Components())
-                .info(info);
+                .info(new Info()
+                        .title("EveryClub API"));
     }
 }
