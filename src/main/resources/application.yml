@@ -3,4 +3,6 @@ spring:
     name: every-club
 springdoc:
   api-docs:
-    path: /openapi.json
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
