@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -20,34 +19,33 @@ public class UserService {
     private final UserRepository userRepository;
 
     @Transactional
-    public UUID createUser(UserCreateRequest request) {
+    public Long createUser(UserCreateRequest request) {
         User user = new User(
-                request.getName(),
-                request.getEmail(),
-                request.getStudentNumber()
+                request.name(),
+                request.email()
         );
         userRepository.save(user);
-        return user.getPublicId();
+        return user.getId();
     }
 
     public List<User> getUsers() {
         return userRepository.findAll();
     }
 
-    public User getUserByPublicId(UUID publicId) {
-        return userRepository.findByPublicId(publicId)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with publicId: " + publicId));
+    public User getUserById(Long id) {
+        return userRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
     }
 
     @Transactional
-    public void updateUser(UUID publicId, UserUpdateRequest request) {
-        User user = getUserByPublicId(publicId);
-        user.update(request.getName(), request.getStudentNumber());
+    public void updateUser(Long id, UserUpdateRequest request) {
+        User user = getUserById(id);
+        user.update(request.name());
     }
 
     @Transactional
-    public void deleteUser(UUID publicId) {
-        User user = getUserByPublicId(publicId);
+    public void deleteUser(Long id) {
+        User user = getUserById(id);
         userRepository.delete(user);
     }
 }

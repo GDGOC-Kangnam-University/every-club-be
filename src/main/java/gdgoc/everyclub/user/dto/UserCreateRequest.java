@@ -1,12 +1,11 @@
 package gdgoc.everyclub.user.dto;
 
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
-@Getter
-@NoArgsConstructor
-public class UserCreateRequest {
-    private String name;
-    private String email;
-    private String studentNumber;
+import jakarta.validation.constraints.NotEmpty;
+
+public record UserCreateRequest(
+        @NotEmpty(message = "Name must not be empty")
+        String name,
+        @NotEmpty(message = "Email must not be empty")
+        String email) {
 }

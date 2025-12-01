@@ -8,9 +8,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -21,9 +19,9 @@ public class UserController {
     private final UserService userService;
 
     @PostMapping
-    public ResponseEntity<Void> createUser(@RequestBody UserCreateRequest request) {
-        UUID publicId = userService.createUser(request);
-        return ResponseEntity.created(URI.create("/users/" + publicId)).build();
+    public ResponseEntity<Long> createUser(@RequestBody UserCreateRequest request) {
+        Long id = userService.createUser(request);
+        return ResponseEntity.ok(id);
     }
 
     @GetMapping
@@ -34,21 +32,21 @@ public class UserController {
         return ResponseEntity.ok(responses);
     }
 
-    @GetMapping("/{publicId}")
-    public ResponseEntity<UserResponse> getUser(@PathVariable UUID publicId) {
-        UserResponse response = new UserResponse(userService.getUserByPublicId(publicId));
+    @GetMapping("/{id}")
+    public ResponseEntity<UserResponse> getUser(@PathVariable Long id) {
+        UserResponse response = new UserResponse(userService.getUserById(id));
         return ResponseEntity.ok(response);
     }
 
-    @PutMapping("/{publicId}")
-    public ResponseEntity<Void> updateUser(@PathVariable UUID publicId, @RequestBody UserUpdateRequest request) {
-        userService.updateUser(publicId, request);
+    @PatchMapping("/{id}")
+    public ResponseEntity<Void> updateUser(@PathVariable Long id, @RequestBody UserUpdateRequest request) {
+        userService.updateUser(id, request);
         return ResponseEntity.noContent().build();
     }
 
-    @DeleteMapping("/{publicId}")
-    public ResponseEntity<Void> deleteUser(@PathVariable UUID publicId) {
-        userService.deleteUser(publicId);
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteUser(@PathVariable Long id) {
+        userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
 }

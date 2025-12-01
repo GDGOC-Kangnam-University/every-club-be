@@ -4,6 +4,10 @@ JVM: 17
 
 ### OpenAPI Spec
 
-JSON 포맷: /openapi.json
-
-UI: /scalar
+```yml
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+```
