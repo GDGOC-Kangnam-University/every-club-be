@@ -10,6 +10,10 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import jakarta.servlet.http.HttpServletRequest;
 
+import static gdgoc.everyclub.common.exception.AccessErrorCode.ACCESS_DENIED;
+import static gdgoc.everyclub.common.exception.SystemErrorCode.INTERNAL_ERROR;
+import static gdgoc.everyclub.common.exception.ValidationErrorCode.INVALID_INPUT;
+
 
 //전역 예외 처리 핸들러
 @RestControllerAdvice
@@ -46,8 +50,8 @@ public class GlobalExceptionHandler {
 
         // TODO: ApiResponse.error(ErrorCode errorCode, String customMessage) 메서드 필요
         return ResponseEntity
-                .status(ErrorCode.INVALID_INPUT.getStatus())
-                .body(ApiResponse.error(ErrorCode.INVALID_INPUT, errorMessage));
+                .status(INVALID_INPUT.getStatus())
+                .body(ApiResponse.error(INVALID_INPUT, errorMessage));
     }
 
     // 접근 권한 예외 처리
@@ -59,8 +63,8 @@ public class GlobalExceptionHandler {
         log.warn("Access denied: {} at {}", e.getMessage(), request.getRequestURI());
 
         return ResponseEntity
-                .status(ErrorCode.ACCESS_DENIED.getStatus())
-                .body(ApiResponse.error(ErrorCode.ACCESS_DENIED));
+                .status(ACCESS_DENIED.getStatus())
+                .body(ApiResponse.error(ACCESS_DENIED));
     }
 
     // 런타임 예외 처리
@@ -72,8 +76,8 @@ public class GlobalExceptionHandler {
         log.error("RuntimeException at {}: {}", request.getRequestURI(), e.getMessage(), e);
 
         return ResponseEntity
-                .status(ErrorCode.INTERNAL_ERROR.getStatus())
-                .body(ApiResponse.error(ErrorCode.INTERNAL_ERROR));
+                .status(INTERNAL_ERROR.getStatus())
+                .body(ApiResponse.error(INTERNAL_ERROR));
     }
 
     // 모든 예외 처리
@@ -85,7 +89,7 @@ public class GlobalExceptionHandler {
         log.error("Unexpected exception at {}: {}", request.getRequestURI(), e.getMessage(), e);
 
         return ResponseEntity
-                .status(ErrorCode.INTERNAL_ERROR.getStatus())
-                .body(ApiResponse.error(ErrorCode.INTERNAL_ERROR));
+                .status(INTERNAL_ERROR.getStatus())
+                .body(ApiResponse.error(INTERNAL_ERROR));
     }
 }
