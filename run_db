@@ -1,0 +1,6 @@
+docker run --name every-club-db \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=password \
+  -e POSTGRES_DB=every-club \
+  -p 5432:5432 \
+  -d postgres
