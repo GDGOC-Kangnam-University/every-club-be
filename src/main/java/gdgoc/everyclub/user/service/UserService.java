@@ -1,10 +1,11 @@
 package gdgoc.everyclub.user.service;
 
+import gdgoc.everyclub.common.exception.ErrorCode;
+import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.user.domain.User;
 import gdgoc.everyclub.user.dto.UserCreateRequest;
 import gdgoc.everyclub.user.dto.UserUpdateRequest;
 import gdgoc.everyclub.user.repository.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,15 +16,12 @@ import java.util.List;
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
 public class UserService {
-
     private final UserRepository userRepository;
+
 
     @Transactional
     public Long createUser(UserCreateRequest request) {
-        User user = new User(
-                request.name(),
-                request.email()
-        );
+        User user = new User(request);
         userRepository.save(user);
         return user.getId();
     }
@@ -34,7 +32,7 @@ public class UserService {
 
     public User getUserById(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + id));
+                .orElseThrow(() -> new LogicException(ErrorCode.RESOURCE_NOT_FOUND));
     }
 
     @Transactional

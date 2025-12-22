@@ -1,5 +1,6 @@
 package gdgoc.everyclub.user.domain;
 
+import gdgoc.everyclub.user.dto.UserCreateRequest;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
 import lombok.Getter;
@@ -40,6 +41,10 @@ public class User {
         this.email = email;
     }
 
+    public User(UserCreateRequest request) {
+        this.name = request.name();
+        this.email = request.email();
+    }
     public void update(String name) {
         this.name = name;
     }
