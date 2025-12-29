@@ -30,7 +30,19 @@ spring:
       ddl-auto: create-drop
 
 springdoc:
+
   api-docs:
+
     path: /v3/api-docs
+
   swagger-ui:
+
     path: /swagger-ui.html
+
+
+
+jwt:
+
+  secret: ${JWT_SECRET}
+
+  expiration: 120
