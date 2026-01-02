@@ -31,12 +31,13 @@ ext {
 }
 
 dependencies {
-//    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-//    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
-//    runtimeOnly 'org.postgresql:postgresql'
+    runtimeOnly 'org.postgresql:postgresql'
+    runtimeOnly 'com.h2database:h2'
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
@@ -45,18 +46,12 @@ dependencies {
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.14'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-api:2.8.13'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-scalar:2.8.13'
-
-    //Kotlin deps, will be removed and migrated into java later
-    /*
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-    implementation "io.ktor:ktor-client-core:3.3.2"
-    implementation "io.ktor:ktor-client-cio:3.3.2"
-    testImplementation "io.ktor:ktor-client-mock:3.3.2"
-    testImplementation "org.jetbrains.kotlin:kotlin-test:2.2.21"
-     */
-
     implementation "com.clerk:backend-api:3.2.0"
+    implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
+    runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.3'
+    runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.3'
 }
+
 
 tasks.named('test') {
     outputs.dir snippetsDir
