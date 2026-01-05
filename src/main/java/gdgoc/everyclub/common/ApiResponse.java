@@ -44,6 +44,14 @@ public class ApiResponse<T> {
         );
     }
 
+    public static <T> ApiResponse<T> error(ErrorCode errorCode, String message) {
+        return new ApiResponse<>(
+                STATUS_ERROR,
+                message,
+                null
+        );
+    }
+
     public static <T> ApiResponse<T> error(String message) {
         return new ApiResponse<>(
                 STATUS_ERROR,

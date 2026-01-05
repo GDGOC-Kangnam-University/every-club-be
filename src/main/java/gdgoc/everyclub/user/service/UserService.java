@@ -1,7 +1,7 @@
 package gdgoc.everyclub.user.service;
 
-import gdgoc.everyclub.common.exception.ErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
+import gdgoc.everyclub.common.exception.ResourceErrorCode;
 import gdgoc.everyclub.user.domain.User;
 import gdgoc.everyclub.user.dto.UserCreateRequest;
 import gdgoc.everyclub.user.dto.UserUpdateRequest;
@@ -32,7 +32,7 @@ public class UserService {
 
     public User getUserById(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new LogicException(ErrorCode.RESOURCE_NOT_FOUND));
+                .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
     }
 
     @Transactional
