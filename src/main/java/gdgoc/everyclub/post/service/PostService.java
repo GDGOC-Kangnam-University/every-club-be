@@ -31,16 +31,12 @@ public class PostService {
         return post.getId();
     }
 
-    public List<Post> getPosts() {
-        return postRepository.findAllWithAuthor();
-    }
-
     public Page<Post> getPosts(Pageable pageable) {
-        return postRepository.findAllWithAuthor(pageable);
+        return postRepository.findAll(pageable);
     }
 
     public Post getPostById(Long id) {
-        return postRepository.findById(id)
+        return postRepository.findByIdWithAuthor(id)
                 .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
     }
 

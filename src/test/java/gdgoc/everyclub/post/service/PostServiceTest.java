@@ -15,6 +15,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
@@ -74,21 +77,22 @@ class PostServiceTest {
     @DisplayName("게시글을 전체 조회한다")
     void getPosts() {
         // given
-        given(postRepository.findAllWithAuthor()).willReturn(List.of(post));
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        given(postRepository.findAll(any(PageRequest.class))).willReturn(new PageImpl<>(List.of(post)));
 
         // when
-        List<Post> posts = postService.getPosts();
+        Page<Post> posts = postService.getPosts(pageRequest);
 
         // then
-        assertThat(posts).hasSize(1);
-        assertThat(posts.get(0).getTitle()).isEqualTo("Title");
+        assertThat(posts.getContent()).hasSize(1);
+        assertThat(posts.getContent().get(0).getTitle()).isEqualTo("Title");
     }
 
     @Test
     @DisplayName("ID로 게시글을 조회한다")
     void getPostById() {
         // given
-        given(postRepository.findById(1L)).willReturn(Optional.of(post));
+        given(postRepository.findByIdWithAuthor(1L)).willReturn(Optional.of(post));
 
         // when
         Post foundPost = postService.getPostById(1L);
@@ -101,7 +105,7 @@ class PostServiceTest {
     @DisplayName("존재하지 않는 게시글 조회 시 예외가 발생한다")
     void getPostById_NotFound() {
         // given
-        given(postRepository.findById(1L)).willReturn(Optional.empty());
+        given(postRepository.findByIdWithAuthor(1L)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> postService.getPostById(1L))
@@ -115,7 +119,7 @@ class PostServiceTest {
     void updatePost() {
         // given
         PostUpdateRequest request = new PostUpdateRequest("New Title", "New Content");
-        given(postRepository.findById(1L)).willReturn(Optional.of(post));
+        given(postRepository.findByIdWithAuthor(1L)).willReturn(Optional.of(post));
 
         // when
         postService.updatePost(1L, request);
@@ -129,7 +133,7 @@ class PostServiceTest {
     @DisplayName("게시글을 삭제한다")
     void deletePost() {
         // given
-        given(postRepository.findById(1L)).willReturn(Optional.of(post));
+        given(postRepository.findByIdWithAuthor(1L)).willReturn(Optional.of(post));
 
         // when
         postService.deletePost(1L);
