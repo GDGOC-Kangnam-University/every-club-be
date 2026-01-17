@@ -23,9 +23,13 @@ jobs:
           distribution: 'temurin'
           cache: gradle
 
+      # 캐시 조아
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
       # 3. Gradle 실행 권한 부여
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
 
       - name: Test and JaCoCo Coverage Verification
-        run: ./gradlew test jacocoTestCoverageVerification
+        run: ./gradlew --no-daemon test jacocoTestCoverageVerification
