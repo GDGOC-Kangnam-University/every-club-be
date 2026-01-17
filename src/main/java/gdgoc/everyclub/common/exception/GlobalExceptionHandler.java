@@ -33,7 +33,22 @@ public class GlobalExceptionHandler {
                 e.getMessage(),
                 request.getRequestURI());
 
-        // TODO: ApiResponse.error(ErrorCode errorCode) 메서드 필요
+        return ResponseEntity
+                .status(e.getErrorCode().getStatus())
+                .body(ApiResponse.error(e.getErrorCode()));
+    }
+
+    // ErrorCode를 담는 예외 처리
+    @ExceptionHandler(LogicException.class)
+    public ResponseEntity<ApiResponse<?>> handleLogicException(
+            HttpServletRequest request,
+            LogicException e) {
+
+        log.warn("LogicException: [{}] {} at {}",
+                e.getErrorCode().code(),
+                e.getErrorCode().getDefaultMessage(),
+                request.getRequestURI());
+
         return ResponseEntity
                 .status(e.getErrorCode().getStatus())
                 .body(ApiResponse.error(e.getErrorCode()));

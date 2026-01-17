@@ -1,5 +1,6 @@
 package gdgoc.everyclub.user.controller;
 
+import gdgoc.everyclub.auth.EmailService;
 import gdgoc.everyclub.common.ApiResponse;
 import gdgoc.everyclub.user.dto.UserCreateRequest;
 import gdgoc.everyclub.user.dto.UserResponse;
@@ -18,6 +19,7 @@ import java.util.stream.Collectors;
 public class UserController {
 
     private final UserService userService;
+    private final EmailService emailService;
 
     @PostMapping
     public ApiResponse<Long> createUser(@RequestBody @Valid UserCreateRequest request) {
@@ -49,5 +51,10 @@ public class UserController {
     public ApiResponse<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ApiResponse.success();
+    }
+
+    @PostMapping("/check-email")
+    public ApiResponse<Boolean> checkEmail(@RequestBody String email) {
+        return ApiResponse.success(emailService.isSchoolEmail(email));
     }
 }
