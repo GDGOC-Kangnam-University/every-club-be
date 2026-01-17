@@ -2,6 +2,8 @@ package gdgoc.everyclub.common;
 
 import gdgoc.everyclub.common.exception.ErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
+import gdgoc.everyclub.common.exception.SystemErrorCode;
+import gdgoc.everyclub.common.exception.ValidationErrorCode;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -26,13 +28,13 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
     @Override
     protected ResponseEntity<Object> handleMethodArgumentNotValid(
             MethodArgumentNotValidException ex, HttpHeaders headers, HttpStatusCode status, WebRequest request) {
-        ErrorCode errorCode = ErrorCode.INVALID_INPUT;
+        ErrorCode errorCode = ValidationErrorCode.INVALID_INPUT;
         return handleExceptionInternal(ex, errorCode);
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Object> handleAllUncaughtException() {
-        ErrorCode errorCode = ErrorCode.INTERNAL_ERROR;
+        ErrorCode errorCode = SystemErrorCode.INTERNAL_ERROR;
         return handleExceptionInternal(errorCode);
     }
 

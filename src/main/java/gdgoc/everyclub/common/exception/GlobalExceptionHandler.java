@@ -1,14 +1,16 @@
 package gdgoc.everyclub.common.exception;
 
+import gdgoc.everyclub.common.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import jakarta.servlet.http.HttpServletRequest;
+
+import java.nio.file.AccessDeniedException;
 
 import static gdgoc.everyclub.common.exception.AccessErrorCode.ACCESS_DENIED;
 import static gdgoc.everyclub.common.exception.SystemErrorCode.INTERNAL_ERROR;
