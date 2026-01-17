@@ -28,9 +28,7 @@ public class StudentVerificationClient {
      * @see <a href="https://docs.github.com/ko/rest/repos/contents?apiVersion=2022-11-28#get-repository-content">Github doc</a>
      */
     public boolean check(String domain) {
-        String[] pathSegments = domain.split("\\.");
-        Collections.reverse(Arrays.asList(pathSegments));
-        String path = String.join("/", pathSegments);
+        String path = getDomainPath(domain);
         String endpoint = "https://api.github.com/repos/JetBrains/swot/contents/lib/domains/" + path + ".txt";
 
         HttpHeaders headers = new HttpHeaders();
@@ -49,5 +47,14 @@ public class StudentVerificationClient {
         } catch (Exception e) {
             return false;
         }
+    }
+
+    /**
+     * @hidden Exposed for testing. Not recommend to use it.
+     */
+     static String getDomainPath(String domain) {
+        String[] pathSegments = domain.split("\\.");
+        Collections.reverse(Arrays.asList(pathSegments));
+        return String.join("/", pathSegments);
     }
 }
