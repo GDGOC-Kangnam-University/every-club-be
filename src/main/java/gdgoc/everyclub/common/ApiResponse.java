@@ -51,4 +51,12 @@ public class ApiResponse<T> {
                 null
         );
     }
+
+    public static <T> ApiResponse<T> error(ErrorCode errorCode, String message) {
+        return new ApiResponse<>(
+                STATUS_ERROR,
+                message,
+                null
+        );
+    }
 }

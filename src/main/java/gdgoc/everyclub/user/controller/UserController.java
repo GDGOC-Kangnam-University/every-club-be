@@ -1,10 +1,12 @@
 package gdgoc.everyclub.user.controller;
 
+import gdgoc.everyclub.auth.EmailService;
 import gdgoc.everyclub.common.ApiResponse;
 import gdgoc.everyclub.user.dto.UserCreateRequest;
 import gdgoc.everyclub.user.dto.UserResponse;
 import gdgoc.everyclub.user.dto.UserUpdateRequest;
 import gdgoc.everyclub.user.service.UserService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -17,9 +19,10 @@ import java.util.stream.Collectors;
 public class UserController {
 
     private final UserService userService;
+    private final EmailService emailService;
 
     @PostMapping
-    public ApiResponse<Long> createUser(@RequestBody UserCreateRequest request) {
+    public ApiResponse<Long> createUser(@RequestBody @Valid UserCreateRequest request) {
         Long id = userService.createUser(request);
         return ApiResponse.success(id);
     }
@@ -39,7 +42,7 @@ public class UserController {
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<Void> updateUser(@PathVariable Long id, @RequestBody UserUpdateRequest request) {
+    public ApiResponse<Void> updateUser(@PathVariable Long id, @RequestBody @Valid UserUpdateRequest request) {
         userService.updateUser(id, request);
         return ApiResponse.success();
     }
@@ -48,5 +51,10 @@ public class UserController {
     public ApiResponse<Void> deleteUser(@PathVariable Long id) {
         userService.deleteUser(id);
         return ApiResponse.success();
+    }
+
+    @PostMapping("/check-email")
+    public ApiResponse<Boolean> checkEmail(@RequestBody String email) {
+        return ApiResponse.success(emailService.isSchoolEmail(email));
     }
 }

@@ -3,7 +3,7 @@ plugins {
     id 'org.springframework.boot' version '3.5.7'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'org.asciidoctor.jvm.convert' version '3.3.2'
-    //id 'org.jetbrains.kotlin.jvm'
+    id 'jacoco'
 }
 
 group = 'gdgoc'
@@ -32,7 +32,7 @@ ext {
 
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
-//    implementation 'org.springframework.boot:spring-boot-starter-security'
+    // implementation 'org.springframework.boot:spring-boot-starter-security'
     implementation 'org.springframework.boot:spring-boot-starter-web'
     compileOnly 'org.projectlombok:lombok'
     developmentOnly 'org.springframework.boot:spring-boot-devtools'
@@ -43,9 +43,8 @@ dependencies {
     testImplementation 'org.springframework.restdocs:spring-restdocs-mockmvc'
     testImplementation 'org.springframework.security:spring-security-test'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.14'
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-api:2.8.13'
-    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-scalar:2.8.13'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.15'
+    implementation 'org.springdoc:springdoc-openapi-starter-webmvc-api:2.8.15'
     implementation "com.clerk:backend-api:3.2.0"
     implementation 'io.jsonwebtoken:jjwt-api:0.12.3'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.3'
@@ -55,6 +54,33 @@ dependencies {
 tasks.named('test') {
     outputs.dir snippetsDir
     useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+jacoco {
+    toolVersion = "0.8.11"
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+    finalizedBy jacocoTestCoverageVerification
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            element = 'BUNDLE'
+            limit {
+                counter = 'LINE'
+                value = 'COVEREDRATIO'
+                minimum = 0.00 // 임시로 0%
+            }
+        }
+    }
 }
 
 tasks.named('asciidoctor') {

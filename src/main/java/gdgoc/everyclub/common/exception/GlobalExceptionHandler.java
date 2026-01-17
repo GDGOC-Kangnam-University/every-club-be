@@ -1,14 +1,16 @@
 package gdgoc.everyclub.common.exception;
 
+import gdgoc.everyclub.common.ApiResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import jakarta.servlet.http.HttpServletRequest;
+
+import java.nio.file.AccessDeniedException;
 
 import static gdgoc.everyclub.common.exception.AccessErrorCode.ACCESS_DENIED;
 import static gdgoc.everyclub.common.exception.SystemErrorCode.INTERNAL_ERROR;
@@ -31,7 +33,22 @@ public class GlobalExceptionHandler {
                 e.getMessage(),
                 request.getRequestURI());
 
-        // TODO: ApiResponse.error(ErrorCode errorCode) 메서드 필요
+        return ResponseEntity
+                .status(e.getErrorCode().getStatus())
+                .body(ApiResponse.error(e.getErrorCode()));
+    }
+
+    // ErrorCode를 담는 예외 처리
+    @ExceptionHandler(LogicException.class)
+    public ResponseEntity<ApiResponse<?>> handleLogicException(
+            HttpServletRequest request,
+            LogicException e) {
+
+        log.warn("LogicException: [{}] {} at {}",
+                e.getErrorCode().code(),
+                e.getErrorCode().getDefaultMessage(),
+                request.getRequestURI());
+
         return ResponseEntity
                 .status(e.getErrorCode().getStatus())
                 .body(ApiResponse.error(e.getErrorCode()));

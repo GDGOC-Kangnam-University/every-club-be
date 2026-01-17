@@ -25,6 +25,8 @@ build/
 target/
 # Wrapper 캐시 (커밋 X) - wrapper 스크립트/설정파일은 커밋 O
 # gradle-wrapper.jar / maven-wrapper.jar는 보통 커밋하지만,
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
 # 로컬 캐시는 제외
 .mvn/wrapper/maven-wrapper.jar
 
