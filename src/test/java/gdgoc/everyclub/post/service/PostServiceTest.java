@@ -74,7 +74,7 @@ class PostServiceTest {
     @DisplayName("게시글을 전체 조회한다")
     void getPosts() {
         // given
-        given(postRepository.findAll()).willReturn(List.of(post));
+        given(postRepository.findAllWithAuthor()).willReturn(List.of(post));
 
         // when
         List<Post> posts = postService.getPosts();

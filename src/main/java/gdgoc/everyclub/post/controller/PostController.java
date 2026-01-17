@@ -7,10 +7,9 @@ import gdgoc.everyclub.post.dto.PostUpdateRequest;
 import gdgoc.everyclub.post.service.PostService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/posts")
@@ -26,9 +25,9 @@ public class PostController {
     }
 
     @GetMapping
-    public ApiResponse<List<PostResponse>> getPosts() {
-        List<PostResponse> responses = postService.getPosts().stream()
-                .map(PostResponse::new).toList();
+    public ApiResponse<Page<PostResponse>> getPosts(Pageable pageable) {
+        Page<PostResponse> responses = postService.getPosts(pageable)
+                .map(PostResponse::new);
         return ApiResponse.success(responses);
     }
 

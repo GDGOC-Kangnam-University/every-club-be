@@ -18,7 +18,7 @@ public class PostResponse {
         this.id = post.getId();
         this.title = post.getTitle();
         this.content = post.getContent();
-        this.authorName = post.getAuthor().getName();
+        this.authorName = post.getAuthor() != null ? post.getAuthor().getName() : "Unknown";
         this.createdAt = post.getCreatedAt();
         this.updatedAt = post.getUpdatedAt();
     }

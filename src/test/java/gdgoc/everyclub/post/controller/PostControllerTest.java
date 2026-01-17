@@ -13,10 +13,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
@@ -65,17 +67,19 @@ class PostControllerTest {
         User author = new User("Author", "author@example.com");
         Post post = new Post("Title", "Content", author);
         ReflectionTestUtils.setField(post, "id", 1L);
-        
-        given(postService.getPosts()).willReturn(List.of(post));
+
+        given(postService.getPosts(any(PageRequest.class))).willReturn(new PageImpl<>(List.of(post)));
 
         // when & then
-        mockMvc.perform(get("/posts"))
+        mockMvc.perform(get("/posts")
+                        .param("page", "0")
+                        .param("size", "10"))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data[0].title").value("Title"))
-                .andExpect(jsonPath("$.data[0].authorName").value("Author"));
+                .andExpect(jsonPath("$.data.content").isArray())
+                .andExpect(jsonPath("$.data.content[0].title").value("Title"))
+                .andExpect(jsonPath("$.data.content[0].authorName").value("Author"));
     }
 
     @Test

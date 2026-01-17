@@ -9,6 +9,8 @@ import gdgoc.everyclub.post.repository.PostRepository;
 import gdgoc.everyclub.user.domain.User;
 import gdgoc.everyclub.user.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -30,7 +32,11 @@ public class PostService {
     }
 
     public List<Post> getPosts() {
-        return postRepository.findAll();
+        return postRepository.findAllWithAuthor();
+    }
+
+    public Page<Post> getPosts(Pageable pageable) {
+        return postRepository.findAllWithAuthor(pageable);
     }
 
     public Post getPostById(Long id) {
