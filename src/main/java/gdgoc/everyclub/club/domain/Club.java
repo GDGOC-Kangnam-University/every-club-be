@@ -1,4 +1,4 @@
-package gdgoc.everyclub.post.domain;
+package gdgoc.everyclub.club.domain;
 
 import gdgoc.everyclub.user.domain.User;
 import jakarta.persistence.*;
@@ -13,12 +13,12 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "posts")
+@Table(name = "club")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLRestriction("deleted_at IS NULL")
 @SQLDelete(sql = "UPDATE posts SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL")
-public class Post {
+public class Club {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -45,7 +45,13 @@ public class Post {
     @SuppressWarnings("unused")
     private LocalDateTime deletedAt;
 
-    public Post(String title, String content, User author) {
+    public Club(String title, String content, User author) {
+        if (title == null || title.isBlank()) {
+            // todo
+            // 0글자 타이틀 허용이 비즈니스 로직?
+            //
+            throw new IllegalArgumentException("Title cannot be null or blank");
+        }
         this.title = title;
         this.content = content;
         this.author = author;

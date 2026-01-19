@@ -1,12 +1,12 @@
-package gdgoc.everyclub.post.controller;
+package gdgoc.everyclub.club.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gdgoc.everyclub.club.domain.Club;
+import gdgoc.everyclub.club.dto.ClubCreateRequest;
+import gdgoc.everyclub.club.dto.ClubUpdateRequest;
+import gdgoc.everyclub.club.service.ClubService;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
-import gdgoc.everyclub.post.domain.Post;
-import gdgoc.everyclub.post.dto.PostCreateRequest;
-import gdgoc.everyclub.post.dto.PostUpdateRequest;
-import gdgoc.everyclub.post.service.PostService;
 import gdgoc.everyclub.user.domain.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,14 +31,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(value = PostController.class, excludeAutoConfiguration = SecurityAutoConfiguration.class)
-class PostControllerTest {
+@WebMvcTest(value = ClubController.class, excludeAutoConfiguration = SecurityAutoConfiguration.class)
+class ClubControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
-    private PostService postService;
+    private ClubService clubService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -47,8 +47,8 @@ class PostControllerTest {
     @DisplayName("게시글 생성 요청 시 200 OK와 생성된 게시글 ID를 반환한다")
     void createPost() throws Exception {
         // given
-        PostCreateRequest request = new PostCreateRequest("Title", "Content", 1L);
-        given(postService.createPost(any(PostCreateRequest.class))).willReturn(1L);
+        ClubCreateRequest request = new ClubCreateRequest("Title", "Content", 1L);
+        given(clubService.createPost(any(ClubCreateRequest.class))).willReturn(1L);
 
         // when & then
         mockMvc.perform(post("/posts")
@@ -64,7 +64,7 @@ class PostControllerTest {
     @DisplayName("게시글 생성 요청 시 필수 값이 누락되면 400 Bad Request를 반환한다")
     void createPost_InvalidInput() throws Exception {
         // given: empty title is invalid because of @NotEmpty
-        PostCreateRequest request = new PostCreateRequest("", "Content", 1L);
+        ClubCreateRequest request = new ClubCreateRequest("", "Content", 1L);
 
         // when & then
         mockMvc.perform(post("/posts")
@@ -80,7 +80,7 @@ class PostControllerTest {
     @DisplayName("게시글 생성 요청 시 authorId가 null이면 400 Bad Request를 반환한다")
     void createPost_NullAuthorId() throws Exception {
         // given: null authorId is invalid because of @NotNull
-        PostCreateRequest request = new PostCreateRequest("Title", "Content", null);
+        ClubCreateRequest request = new ClubCreateRequest("Title", "Content", null);
 
         // when & then
         mockMvc.perform(post("/posts")
@@ -93,14 +93,44 @@ class PostControllerTest {
     }
 
     @Test
+    @DisplayName("게시글 생성 요청 시 제목이 null이면 400 Bad Request를 반환한다")
+    void createPost_NullTitle() throws Exception {
+        // given
+        ClubCreateRequest request = new ClubCreateRequest(null, "Content", 1L);
+
+        // when & then
+        mockMvc.perform(post("/posts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("ERROR"));
+    }
+
+    @Test
+    @DisplayName("게시글 생성 요청 시 내용이 null이면 400 Bad Request를 반환한다")
+    void createPost_NullContent() throws Exception {
+        // given
+        ClubCreateRequest request = new ClubCreateRequest("Title", null, 1L);
+
+        // when & then
+        mockMvc.perform(post("/posts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("ERROR"));
+    }
+
+    @Test
     @DisplayName("모든 게시글 조회 시 200 OK와 게시글 리스트를 반환한다")
     void getPosts() throws Exception {
         // given
         User author = new User("Author", "author@example.com");
-        Post post = new Post("Title", "Content", author);
-        ReflectionTestUtils.setField(post, "id", 1L);
+        Club club = new Club("Title", "Content", author);
+        ReflectionTestUtils.setField(club, "id", 1L);
 
-        given(postService.getPosts(any(PageRequest.class))).willReturn(new PageImpl<>(List.of(post)));
+        given(clubService.getPosts(any(PageRequest.class))).willReturn(new PageImpl<>(List.of(club)));
 
         // when & then
         mockMvc.perform(get("/posts")
@@ -120,10 +150,10 @@ class PostControllerTest {
         // given
         Long postId = 1L;
         User author = new User("Author", "author@example.com");
-        Post post = new Post("Title", "Content", author);
-        ReflectionTestUtils.setField(post, "id", postId);
-        
-        given(postService.getPostById(postId)).willReturn(post);
+        Club club = new Club("Title", "Content", author);
+        ReflectionTestUtils.setField(club, "id", postId);
+
+        given(clubService.getPostById(postId)).willReturn(club);
 
         // when & then
         mockMvc.perform(get("/posts/{id}", postId))
@@ -139,7 +169,7 @@ class PostControllerTest {
     void getPost_NotFound() throws Exception {
         // given
         Long postId = 999L;
-        given(postService.getPostById(postId))
+        given(clubService.getPostById(postId))
                 .willThrow(new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
 
         // when & then
@@ -154,7 +184,7 @@ class PostControllerTest {
     void updatePost() throws Exception {
         // given
         Long postId = 1L;
-        PostUpdateRequest request = new PostUpdateRequest("Updated Title", "Updated Content");
+        ClubUpdateRequest request = new ClubUpdateRequest("Updated Title", "Updated Content");
 
         // when & then
         mockMvc.perform(put("/posts/{id}", postId)
@@ -164,7 +194,7 @@ class PostControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"));
 
-        verify(postService).updatePost(eq(postId), any(PostUpdateRequest.class));
+        verify(clubService).updatePost(eq(postId), any(ClubUpdateRequest.class));
     }
 
     @Test
@@ -172,7 +202,7 @@ class PostControllerTest {
     void updatePost_InvalidInput() throws Exception {
         // given
         Long postId = 1L;
-        PostUpdateRequest request = new PostUpdateRequest("", "");
+        ClubUpdateRequest request = new ClubUpdateRequest("", "");
 
         // when & then
         mockMvc.perform(put("/posts/{id}", postId)
@@ -182,6 +212,38 @@ class PostControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("ERROR"))
                 .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    @DisplayName("게시글 수정 시 제목이 null이면 400 Bad Request를 반환한다")
+    void updatePost_NullTitle() throws Exception {
+        // given
+        Long postId = 1L;
+        ClubUpdateRequest request = new ClubUpdateRequest(null, "Content");
+
+        // when & then
+        mockMvc.perform(put("/posts/{id}", postId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("ERROR"));
+    }
+
+    @Test
+    @DisplayName("게시글 수정 시 내용이 null이면 400 Bad Request를 반환한다")
+    void updatePost_NullContent() throws Exception {
+        // given
+        Long postId = 1L;
+        ClubUpdateRequest request = new ClubUpdateRequest("Title", null);
+
+        // when & then
+        mockMvc.perform(put("/posts/{id}", postId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("ERROR"));
     }
 
     @Test
@@ -196,6 +258,6 @@ class PostControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"));
 
-        verify(postService).deletePost(postId);
+        verify(clubService).deletePost(postId);
     }
 }

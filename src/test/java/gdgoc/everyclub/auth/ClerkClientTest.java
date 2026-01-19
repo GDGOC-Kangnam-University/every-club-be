@@ -10,6 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -23,7 +24,7 @@ class ClerkClientTest {
         String secretKey = "test_secret_key";
         String cookieSession = "test_session_token";
         ClerkClient clerkClient = new ClerkClient(secretKey);
-        
+
         RequestState expectedRequestState = mock(RequestState.class);
 
         try (MockedStatic<AuthenticateRequest> mockedAuthenticateRequest = mockStatic(AuthenticateRequest.class)) {
@@ -38,5 +39,24 @@ class ClerkClientTest {
             // Then
             assertEquals(expectedRequestState, result);
         }
+    }
+
+    @Test
+    void getSigninDataFromCookie_NullCookie() {
+        // Given
+        ClerkClient clerkClient = new ClerkClient("test_secret_key");
+
+        // When & Then
+        // Depending on how AuthenticateRequest handle null, it might throw an exception
+        assertThrows(Exception.class, () -> clerkClient.getSigninDataFromCookie(null));
+    }
+
+    @Test
+    void getSigninDataFromCookie_EmptyCookie() {
+        // Given
+        ClerkClient clerkClient = new ClerkClient("test_secret_key");
+
+        // When & Then
+        assertThrows(Exception.class, () -> clerkClient.getSigninDataFromCookie(""));
     }
 }

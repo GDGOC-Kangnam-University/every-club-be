@@ -13,8 +13,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -74,6 +74,36 @@ class UserControllerTest {
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("ERROR"))
                 .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    @DisplayName("유저 생성 요청 시 이름이 null이면 400 Bad Request를 반환한다")
+    void createUser_NullName() throws Exception {
+        // given
+        UserCreateRequest request = new UserCreateRequest(null, "john@example.com");
+
+        // when & then
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("ERROR"));
+    }
+
+    @Test
+    @DisplayName("유저 생성 요청 시 이메일이 null이면 400 Bad Request를 반환한다")
+    void createUser_NullEmail() throws Exception {
+        // given
+        UserCreateRequest request = new UserCreateRequest("John Doe", null);
+
+        // when & then
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("ERROR"));
     }
 
     @Test
@@ -144,6 +174,38 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.status").value("SUCCESS"));
 
         verify(userService).updateUser(eq(userId), any(UserUpdateRequest.class));
+    }
+
+    @Test
+    @DisplayName("유저 정보 수정 시 이름이 null이면 400 Bad Request를 반환한다")
+    void updateUser_NullName() throws Exception {
+        // given
+        Long userId = 1L;
+        UserUpdateRequest request = new UserUpdateRequest(null);
+
+        // when & then
+        mockMvc.perform(put("/users/{id}", userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("ERROR"));
+    }
+
+    @Test
+    @DisplayName("유저 정보 수정 시 이름이 빈 문자열이면 400 Bad Request를 반환한다")
+    void updateUser_BlankName() throws Exception {
+        // given
+        Long userId = 1L;
+        UserUpdateRequest request = new UserUpdateRequest(" ");
+
+        // when & then
+        mockMvc.perform(put("/users/{id}", userId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("ERROR"));
     }
 
     @Test

@@ -114,10 +114,10 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
-    @DisplayName("Exception 처리 테스트")
-    void handleException() {
+    @DisplayName("메시지가 없는 Exception 처리 테스트")
+    void handleException_NullMessage() {
         // Given
-        Exception exception = new Exception("Unexpected error");
+        Exception exception = new Exception((String) null);
 
         // When
         ResponseEntity<ApiResponse<?>> response = globalExceptionHandler.handleException(request, exception);
