@@ -61,6 +61,38 @@ class PostControllerTest {
     }
 
     @Test
+    @DisplayName("게시글 생성 요청 시 필수 값이 누락되면 400 Bad Request를 반환한다")
+    void createPost_InvalidInput() throws Exception {
+        // given: empty title is invalid because of @NotEmpty
+        PostCreateRequest request = new PostCreateRequest("", "Content", 1L);
+
+        // when & then
+        mockMvc.perform(post("/posts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("ERROR"))
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
+    @DisplayName("게시글 생성 요청 시 authorId가 null이면 400 Bad Request를 반환한다")
+    void createPost_NullAuthorId() throws Exception {
+        // given: null authorId is invalid because of @NotNull
+        PostCreateRequest request = new PostCreateRequest("Title", "Content", null);
+
+        // when & then
+        mockMvc.perform(post("/posts")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("ERROR"))
+                .andExpect(jsonPath("$.message").exists());
+    }
+
+    @Test
     @DisplayName("모든 게시글 조회 시 200 OK와 게시글 리스트를 반환한다")
     void getPosts() throws Exception {
         // given
@@ -133,6 +165,23 @@ class PostControllerTest {
                 .andExpect(jsonPath("$.status").value("SUCCESS"));
 
         verify(postService).updatePost(eq(postId), any(PostUpdateRequest.class));
+    }
+
+    @Test
+    @DisplayName("게시글 수정 시 필수 값이 누락되면 400 Bad Request를 반환한다")
+    void updatePost_InvalidInput() throws Exception {
+        // given
+        Long postId = 1L;
+        PostUpdateRequest request = new PostUpdateRequest("", "");
+
+        // when & then
+        mockMvc.perform(put("/posts/{id}", postId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("ERROR"))
+                .andExpect(jsonPath("$.message").exists());
     }
 
     @Test
