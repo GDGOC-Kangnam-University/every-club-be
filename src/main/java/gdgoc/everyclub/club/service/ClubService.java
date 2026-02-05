@@ -23,6 +23,9 @@ public class ClubService {
 
     @Transactional
     public Long createPost(ClubCreateRequest request) {
+        if (request == null) {
+            throw new NullPointerException("ClubCreateRequest cannot be null");
+        }
         User author = userService.getUserById(request.authorId());
         Club club = new Club(request.title(), request.content(), author);
         clubRepository.save(club);
@@ -30,6 +33,9 @@ public class ClubService {
     }
 
     public Page<Club> getPosts(Pageable pageable) {
+        if (pageable == null) {
+            throw new IllegalArgumentException("Pageable cannot be null");
+        }
         return clubRepository.findAll(pageable);
     }
 
@@ -40,6 +46,9 @@ public class ClubService {
 
     @Transactional
     public void updatePost(Long id, ClubUpdateRequest request) {
+        if (request == null) {
+            throw new NullPointerException("ClubUpdateRequest cannot be null");
+        }
         Club club = getPostById(id);
         club.update(request.title(), request.content());
     }

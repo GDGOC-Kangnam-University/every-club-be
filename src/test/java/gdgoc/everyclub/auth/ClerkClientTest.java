@@ -47,8 +47,7 @@ class ClerkClientTest {
         ClerkClient clerkClient = new ClerkClient("test_secret_key");
 
         // When & Then
-        // Depending on how AuthenticateRequest handle null, it might throw an exception
-        assertThrows(Exception.class, () -> clerkClient.getSigninDataFromCookie(null));
+        assertThrows(IllegalArgumentException.class, () -> clerkClient.getSigninDataFromCookie(null));
     }
 
     @Test
@@ -57,6 +56,6 @@ class ClerkClientTest {
         ClerkClient clerkClient = new ClerkClient("test_secret_key");
 
         // When & Then
-        assertThrows(Exception.class, () -> clerkClient.getSigninDataFromCookie(""));
+        assertThrows(IllegalArgumentException.class, () -> clerkClient.getSigninDataFromCookie(""));
     }
 }

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ClubTest {
 
@@ -26,13 +27,12 @@ class ClubTest {
     }
 
     @Test
-    @DisplayName("게시글 생성 시 제목이 null이어도 객체는 생성된다 (DB 저장 시점에 실패)")
+    @DisplayName("게시글 생성 시 제목이 null이면 IllegalArgumentException이 발생한다")
     void createPost_NullTitle() {
-        // when
-        Club club = new Club(null, "Content", null);
-
-        // then
-        assertThat(club.getTitle()).isNull();
+        // when & then
+        assertThatThrownBy(() -> new Club(null, "Content", null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Title cannot be null or blank");
     }
 
     @Test

@@ -1,6 +1,5 @@
 package gdgoc.everyclub.user.service;
 
-import gdgoc.everyclub.common.exception.ErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
 import gdgoc.everyclub.user.domain.User;
@@ -22,6 +21,9 @@ public class UserService {
 
     @Transactional
     public Long createUser(UserCreateRequest request) {
+        if (request == null) {
+            throw new NullPointerException("UserCreateRequest cannot be null");
+        }
         User user = new User(request);
         userRepository.save(user);
         return user.getId();
@@ -38,6 +40,9 @@ public class UserService {
 
     @Transactional
     public void updateUser(Long id, UserUpdateRequest request) {
+        if (request == null) {
+            throw new NullPointerException("UserUpdateRequest cannot be null");
+        }
         User user = getUserById(id);
         user.update(request.name());
     }

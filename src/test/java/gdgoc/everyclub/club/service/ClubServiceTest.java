@@ -116,7 +116,7 @@ class ClubServiceTest {
     void getPosts_NullPageable() {
         // when & then
         assertThatThrownBy(() -> clubService.getPosts(null))
-                .isInstanceOf(RuntimeException.class);
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

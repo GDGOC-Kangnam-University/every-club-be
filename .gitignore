@@ -50,3 +50,6 @@ target/
 # 선택: .env 류 사용 시
 .env
 .env.*
+
+# --- Documentation (local) ---
+db_schema.md

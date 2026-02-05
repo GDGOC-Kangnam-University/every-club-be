@@ -19,8 +19,12 @@ public class ClerkClient {
 
     /**
      * @param cookieSession The value of `__session` cookie
+     * @throws IllegalArgumentException if cookieSession is null or empty
      */
     public RequestState getSigninDataFromCookie(String cookieSession) {
+        if (cookieSession == null || cookieSession.isBlank()) {
+            throw new IllegalArgumentException("Cookie session cannot be null or empty");
+        }
         return AuthenticateRequest.authenticateRequest(
                 Map.of("cookie", List.of("__session=" + cookieSession)),
                 AuthenticateRequestOptions.Builder.withSecretKey(this.clerkSecretKey).build()
