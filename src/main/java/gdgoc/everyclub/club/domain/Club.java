@@ -31,7 +31,7 @@ public class Club {
     private String content;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
+    @JoinColumn(name = "created_by", nullable = false)
     private User author;
 
     @CreationTimestamp
