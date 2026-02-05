@@ -54,8 +54,8 @@ class ClubServiceTest {
     }
 
     @Test
-    @DisplayName("게시글을 생성한다")
-    void createPost() {
+    @DisplayName("동아리를 생성한다")
+    void createClub() {
         // given
         ClubCreateRequest request = new ClubCreateRequest("Title", "Content", 1L);
         given(userService.getUserById(1L)).willReturn(author);
@@ -66,94 +66,94 @@ class ClubServiceTest {
         });
 
         // when
-        Long postId = clubService.createPost(request);
+        Long clubId = clubService.createClub(request);
 
         // then
-        assertThat(postId).isEqualTo(1L);
+        assertThat(clubId).isEqualTo(1L);
         verify(clubRepository).save(any(Club.class));
     }
 
     @Test
-    @DisplayName("게시글 생성 시 존재하지 않는 작성자 ID면 예외가 발생한다")
-    void createPost_AuthorNotFound() {
+    @DisplayName("동아리 생성 시 존재하지 않는 작성자 ID면 예외가 발생한다")
+    void createClub_AuthorNotFound() {
         // given
         ClubCreateRequest request = new ClubCreateRequest("Title", "Content", 999L);
         given(userService.getUserById(999L))
                 .willThrow(new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
 
         // when & then
-        assertThatThrownBy(() -> clubService.createPost(request))
+        assertThatThrownBy(() -> clubService.createClub(request))
                 .isInstanceOf(LogicException.class)
                 .extracting("errorCode")
                 .isEqualTo(ResourceErrorCode.RESOURCE_NOT_FOUND);
     }
 
     @Test
-    @DisplayName("게시글 생성 시 request가 null이면 NullPointerException이 발생한다")
-    void createPost_NullRequest() {
+    @DisplayName("동아리 생성 시 request가 null이면 NullPointerException이 발생한다")
+    void createClub_NullRequest() {
         // when & then
-        assertThatThrownBy(() -> clubService.createPost(null))
+        assertThatThrownBy(() -> clubService.createClub(null))
                 .isInstanceOf(NullPointerException.class);
     }
 
     @Test
-    @DisplayName("게시글을 전체 조회한다")
-    void getPosts() {
+    @DisplayName("동아리를 전체 조회한다")
+    void getClubs() {
         // given
         PageRequest pageRequest = PageRequest.of(0, 10);
         given(clubRepository.findAll(any(PageRequest.class))).willReturn(new PageImpl<>(List.of(club)));
 
         // when
-        Page<Club> posts = clubService.getPosts(pageRequest);
+        Page<Club> clubs = clubService.getClubs(pageRequest);
 
         // then
-        assertThat(posts.getContent()).hasSize(1);
-        assertThat(posts.getContent().get(0).getTitle()).isEqualTo("Title");
+        assertThat(clubs.getContent()).hasSize(1);
+        assertThat(clubs.getContent().get(0).getTitle()).isEqualTo("Title");
     }
 
     @Test
-    @DisplayName("게시글 전체 조회 시 Pageable이 null이면 예외가 발생한다")
-    void getPosts_NullPageable() {
+    @DisplayName("동아리 전체 조회 시 Pageable이 null이면 예외가 발생한다")
+    void getClubs_NullPageable() {
         // when & then
-        assertThatThrownBy(() -> clubService.getPosts(null))
+        assertThatThrownBy(() -> clubService.getClubs(null))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
-    @DisplayName("ID로 게시글을 조회한다")
-    void getPostById() {
+    @DisplayName("ID로 동아리를 조회한다")
+    void getClubById() {
         // given
         given(clubRepository.findByIdWithAuthor(1L)).willReturn(Optional.of(club));
 
         // when
-        Club foundClub = clubService.getPostById(1L);
+        Club foundClub = clubService.getClubById(1L);
 
         // then
         assertThat(foundClub).isEqualTo(club);
     }
 
     @Test
-    @DisplayName("존재하지 않는 게시글 조회 시 예외가 발생한다")
-    void getPostById_NotFound() {
+    @DisplayName("존재하지 않는 동아리 조회 시 예외가 발생한다")
+    void getClubById_NotFound() {
         // given
         given(clubRepository.findByIdWithAuthor(1L)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> clubService.getPostById(1L))
+        assertThatThrownBy(() -> clubService.getClubById(1L))
                 .isInstanceOf(LogicException.class)
                 .extracting("errorCode")
                 .isEqualTo(ResourceErrorCode.RESOURCE_NOT_FOUND);
     }
 
     @Test
-    @DisplayName("게시글을 수정한다")
-    void updatePost() {
+    @DisplayName("동아리를 수정한다")
+    void updateClub() {
         // given
         ClubUpdateRequest request = new ClubUpdateRequest("New Title", "New Content");
         given(clubRepository.findByIdWithAuthor(1L)).willReturn(Optional.of(club));
 
         // when
-        clubService.updatePost(1L, request);
+        clubService.updateClub(1L, request);
 
         // then
         assertThat(club.getTitle()).isEqualTo("New Title");
@@ -161,24 +161,24 @@ class ClubServiceTest {
     }
 
     @Test
-    @DisplayName("게시글 수정 시 request가 null이면 NullPointerException이 발생한다")
-    void updatePost_NullRequest() {
+    @DisplayName("동아리 수정 시 request가 null이면 NullPointerException이 발생한다")
+    void updateClub_NullRequest() {
         // given
-        Long postId = 1L;
+        Long clubId = 1L;
 
         // when & then
-        assertThatThrownBy(() -> clubService.updatePost(postId, null))
+        assertThatThrownBy(() -> clubService.updateClub(clubId, null))
                 .isInstanceOf(NullPointerException.class);
     }
 
     @Test
-    @DisplayName("게시글을 삭제한다")
-    void deletePost() {
+    @DisplayName("동아리를 삭제한다")
+    void deleteClub() {
         // given
         given(clubRepository.findByIdWithAuthor(1L)).willReturn(Optional.of(club));
 
         // when
-        clubService.deletePost(1L);
+        clubService.deleteClub(1L);
 
         // then
         verify(clubRepository).delete(club);

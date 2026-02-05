@@ -22,7 +22,7 @@ public class ClubService {
     private final UserService userService;
 
     @Transactional
-    public Long createPost(ClubCreateRequest request) {
+    public Long createClub(ClubCreateRequest request) {
         if (request == null) {
             throw new NullPointerException("ClubCreateRequest cannot be null");
         }
@@ -32,30 +32,30 @@ public class ClubService {
         return club.getId();
     }
 
-    public Page<Club> getPosts(Pageable pageable) {
+    public Page<Club> getClubs(Pageable pageable) {
         if (pageable == null) {
             throw new IllegalArgumentException("Pageable cannot be null");
         }
         return clubRepository.findAll(pageable);
     }
 
-    public Club getPostById(Long id) {
+    public Club getClubById(Long id) {
         return clubRepository.findByIdWithAuthor(id)
                 .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
     }
 
     @Transactional
-    public void updatePost(Long id, ClubUpdateRequest request) {
+    public void updateClub(Long id, ClubUpdateRequest request) {
         if (request == null) {
             throw new NullPointerException("ClubUpdateRequest cannot be null");
         }
-        Club club = getPostById(id);
+        Club club = getClubById(id);
         club.update(request.title(), request.content());
     }
 
     @Transactional
-    public void deletePost(Long id) {
-        Club club = getPostById(id);
+    public void deleteClub(Long id) {
+        Club club = getClubById(id);
         clubRepository.delete(club);
     }
 }

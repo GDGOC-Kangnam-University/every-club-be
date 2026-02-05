@@ -44,14 +44,14 @@ class ClubControllerTest {
     private ObjectMapper objectMapper;
 
     @Test
-    @DisplayName("게시글 생성 요청 시 200 OK와 생성된 게시글 ID를 반환한다")
-    void createPost() throws Exception {
+    @DisplayName("동아리 생성 요청 시 200 OK와 생성된 동아리 ID를 반환한다")
+    void createClub() throws Exception {
         // given
         ClubCreateRequest request = new ClubCreateRequest("Title", "Content", 1L);
-        given(clubService.createPost(any(ClubCreateRequest.class))).willReturn(1L);
+        given(clubService.createClub(any(ClubCreateRequest.class))).willReturn(1L);
 
         // when & then
-        mockMvc.perform(post("/posts")
+        mockMvc.perform(post("/clubs")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -61,13 +61,13 @@ class ClubControllerTest {
     }
 
     @Test
-    @DisplayName("게시글 생성 요청 시 필수 값이 누락되면 400 Bad Request를 반환한다")
-    void createPost_InvalidInput() throws Exception {
+    @DisplayName("동아리 생성 요청 시 필수 값이 누락되면 400 Bad Request를 반환한다")
+    void createClub_InvalidInput() throws Exception {
         // given: empty title is invalid because of @NotEmpty
         ClubCreateRequest request = new ClubCreateRequest("", "Content", 1L);
 
         // when & then
-        mockMvc.perform(post("/posts")
+        mockMvc.perform(post("/clubs")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -77,13 +77,13 @@ class ClubControllerTest {
     }
 
     @Test
-    @DisplayName("게시글 생성 요청 시 authorId가 null이면 400 Bad Request를 반환한다")
-    void createPost_NullAuthorId() throws Exception {
+    @DisplayName("동아리 생성 요청 시 authorId가 null이면 400 Bad Request를 반환한다")
+    void createClub_NullAuthorId() throws Exception {
         // given: null authorId is invalid because of @NotNull
         ClubCreateRequest request = new ClubCreateRequest("Title", "Content", null);
 
         // when & then
-        mockMvc.perform(post("/posts")
+        mockMvc.perform(post("/clubs")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -93,13 +93,13 @@ class ClubControllerTest {
     }
 
     @Test
-    @DisplayName("게시글 생성 요청 시 제목이 null이면 400 Bad Request를 반환한다")
-    void createPost_NullTitle() throws Exception {
+    @DisplayName("동아리 생성 요청 시 제목이 null이면 400 Bad Request를 반환한다")
+    void createClub_NullTitle() throws Exception {
         // given
         ClubCreateRequest request = new ClubCreateRequest(null, "Content", 1L);
 
         // when & then
-        mockMvc.perform(post("/posts")
+        mockMvc.perform(post("/clubs")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -108,13 +108,13 @@ class ClubControllerTest {
     }
 
     @Test
-    @DisplayName("게시글 생성 요청 시 내용이 null이면 400 Bad Request를 반환한다")
-    void createPost_NullContent() throws Exception {
+    @DisplayName("동아리 생성 요청 시 내용이 null이면 400 Bad Request를 반환한다")
+    void createClub_NullContent() throws Exception {
         // given
         ClubCreateRequest request = new ClubCreateRequest("Title", null, 1L);
 
         // when & then
-        mockMvc.perform(post("/posts")
+        mockMvc.perform(post("/clubs")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -123,17 +123,17 @@ class ClubControllerTest {
     }
 
     @Test
-    @DisplayName("모든 게시글 조회 시 200 OK와 게시글 리스트를 반환한다")
-    void getPosts() throws Exception {
+    @DisplayName("모든 동아리 조회 시 200 OK와 동아리 리스트를 반환한다")
+    void getClubs() throws Exception {
         // given
         User author = new User("Author", "author@example.com");
         Club club = new Club("Title", "Content", author);
         ReflectionTestUtils.setField(club, "id", 1L);
 
-        given(clubService.getPosts(any(PageRequest.class))).willReturn(new PageImpl<>(List.of(club)));
+        given(clubService.getClubs(any(PageRequest.class))).willReturn(new PageImpl<>(List.of(club)));
 
         // when & then
-        mockMvc.perform(get("/posts")
+        mockMvc.perform(get("/clubs")
                         .param("page", "0")
                         .param("size", "10"))
                 .andDo(print())
@@ -145,18 +145,18 @@ class ClubControllerTest {
     }
 
     @Test
-    @DisplayName("특정 게시글 조회 시 200 OK와 게시글 정보를 반환한다")
-    void getPost() throws Exception {
+    @DisplayName("특정 동아리 조회 시 200 OK와 동아리 정보를 반환한다")
+    void getClub() throws Exception {
         // given
-        Long postId = 1L;
+        Long clubId = 1L;
         User author = new User("Author", "author@example.com");
         Club club = new Club("Title", "Content", author);
-        ReflectionTestUtils.setField(club, "id", postId);
+        ReflectionTestUtils.setField(club, "id", clubId);
 
-        given(clubService.getPostById(postId)).willReturn(club);
+        given(clubService.getClubById(clubId)).willReturn(club);
 
         // when & then
-        mockMvc.perform(get("/posts/{id}", postId))
+        mockMvc.perform(get("/clubs/{id}", clubId))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
@@ -165,47 +165,47 @@ class ClubControllerTest {
     }
 
     @Test
-    @DisplayName("존재하지 않는 게시글 조회 시 404 Not Found를 반환한다")
-    void getPost_NotFound() throws Exception {
+    @DisplayName("존재하지 않는 동아리 조회 시 404 Not Found를 반환한다")
+    void getClub_NotFound() throws Exception {
         // given
-        Long postId = 999L;
-        given(clubService.getPostById(postId))
+        Long clubId = 999L;
+        given(clubService.getClubById(clubId))
                 .willThrow(new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
 
         // when & then
-        mockMvc.perform(get("/posts/{id}", postId))
+        mockMvc.perform(get("/clubs/{id}", clubId))
                 .andDo(print())
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.status").value("ERROR"));
     }
 
     @Test
-    @DisplayName("게시글 수정 시 200 OK를 반환한다")
-    void updatePost() throws Exception {
+    @DisplayName("동아리 수정 시 200 OK를 반환한다")
+    void updateClub() throws Exception {
         // given
-        Long postId = 1L;
+        Long clubId = 1L;
         ClubUpdateRequest request = new ClubUpdateRequest("Updated Title", "Updated Content");
 
         // when & then
-        mockMvc.perform(put("/posts/{id}", postId)
+        mockMvc.perform(put("/clubs/{id}", clubId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"));
 
-        verify(clubService).updatePost(eq(postId), any(ClubUpdateRequest.class));
+        verify(clubService).updateClub(eq(clubId), any(ClubUpdateRequest.class));
     }
 
     @Test
-    @DisplayName("게시글 수정 시 필수 값이 누락되면 400 Bad Request를 반환한다")
-    void updatePost_InvalidInput() throws Exception {
+    @DisplayName("동아리 수정 시 필수 값이 누락되면 400 Bad Request를 반환한다")
+    void updateClub_InvalidInput() throws Exception {
         // given
-        Long postId = 1L;
+        Long clubId = 1L;
         ClubUpdateRequest request = new ClubUpdateRequest("", "");
 
         // when & then
-        mockMvc.perform(put("/posts/{id}", postId)
+        mockMvc.perform(put("/clubs/{id}", clubId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -215,14 +215,14 @@ class ClubControllerTest {
     }
 
     @Test
-    @DisplayName("게시글 수정 시 제목이 null이면 400 Bad Request를 반환한다")
-    void updatePost_NullTitle() throws Exception {
+    @DisplayName("동아리 수정 시 제목이 null이면 400 Bad Request를 반환한다")
+    void updateClub_NullTitle() throws Exception {
         // given
-        Long postId = 1L;
+        Long clubId = 1L;
         ClubUpdateRequest request = new ClubUpdateRequest(null, "Content");
 
         // when & then
-        mockMvc.perform(put("/posts/{id}", postId)
+        mockMvc.perform(put("/clubs/{id}", clubId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -231,14 +231,14 @@ class ClubControllerTest {
     }
 
     @Test
-    @DisplayName("게시글 수정 시 내용이 null이면 400 Bad Request를 반환한다")
-    void updatePost_NullContent() throws Exception {
+    @DisplayName("동아리 수정 시 내용이 null이면 400 Bad Request를 반환한다")
+    void updateClub_NullContent() throws Exception {
         // given
-        Long postId = 1L;
+        Long clubId = 1L;
         ClubUpdateRequest request = new ClubUpdateRequest("Title", null);
 
         // when & then
-        mockMvc.perform(put("/posts/{id}", postId)
+        mockMvc.perform(put("/clubs/{id}", clubId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -247,17 +247,17 @@ class ClubControllerTest {
     }
 
     @Test
-    @DisplayName("게시글 삭제 시 200 OK를 반환한다")
-    void deletePost() throws Exception {
+    @DisplayName("동아리 삭제 시 200 OK를 반환한다")
+    void deleteClub() throws Exception {
         // given
-        Long postId = 1L;
+        Long clubId = 1L;
 
         // when & then
-        mockMvc.perform(delete("/posts/{id}", postId))
+        mockMvc.perform(delete("/clubs/{id}", clubId))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"));
 
-        verify(clubService).deletePost(postId);
+        verify(clubService).deleteClub(clubId);
     }
 }

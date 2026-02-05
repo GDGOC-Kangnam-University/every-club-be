@@ -12,40 +12,40 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/posts")
+@RequestMapping("/clubs")
 @RequiredArgsConstructor
 public class ClubController {
 
     private final ClubService clubService;
 
     @PostMapping
-    public ApiResponse<Long> createPost(@RequestBody @Valid ClubCreateRequest request) {
-        Long id = clubService.createPost(request);
+    public ApiResponse<Long> createClub(@RequestBody @Valid ClubCreateRequest request) {
+        Long id = clubService.createClub(request);
         return ApiResponse.success(id);
     }
 
     @GetMapping
-    public ApiResponse<Page<ClubResponse>> getPosts(Pageable pageable) {
-        Page<ClubResponse> responses = clubService.getPosts(pageable)
+    public ApiResponse<Page<ClubResponse>> getClubs(Pageable pageable) {
+        Page<ClubResponse> responses = clubService.getClubs(pageable)
                 .map(ClubResponse::new);
         return ApiResponse.success(responses);
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<ClubResponse> getPost(@PathVariable Long id) {
-        ClubResponse response = new ClubResponse(clubService.getPostById(id));
+    public ApiResponse<ClubResponse> getClub(@PathVariable Long id) {
+        ClubResponse response = new ClubResponse(clubService.getClubById(id));
         return ApiResponse.success(response);
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<Void> updatePost(@PathVariable Long id, @RequestBody @Valid ClubUpdateRequest request) {
-        clubService.updatePost(id, request);
+    public ApiResponse<Void> updateClub(@PathVariable Long id, @RequestBody @Valid ClubUpdateRequest request) {
+        clubService.updateClub(id, request);
         return ApiResponse.success();
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<Void> deletePost(@PathVariable Long id) {
-        clubService.deletePost(id);
+    public ApiResponse<Void> deleteClub(@PathVariable Long id) {
+        clubService.deleteClub(id);
         return ApiResponse.success();
     }
 }

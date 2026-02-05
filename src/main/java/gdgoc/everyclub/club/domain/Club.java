@@ -17,7 +17,7 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLRestriction("deleted_at IS NULL")
-@SQLDelete(sql = "UPDATE posts SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL")
+@SQLDelete(sql = "UPDATE club SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL")
 public class Club {
 
     @Id
