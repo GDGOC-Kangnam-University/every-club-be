@@ -40,6 +40,9 @@ class UserControllerTest {
     @MockitoBean
     private EmailService emailService;
 
+    @MockitoBean
+    private gdgoc.everyclub.security.jwt.JwtProvider jwtProvider;
+
     @Autowired
     private ObjectMapper objectMapper;
 
