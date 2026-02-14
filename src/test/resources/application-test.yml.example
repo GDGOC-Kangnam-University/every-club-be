@@ -1,0 +1,7 @@
+s3:
+  endpoint: https://storage.googleapis.com
+  region: auto
+  access-key: YOUR_HMAC_ACCESS_KEY
+  secret-key: YOUR_HMAC_SECRET_KEY
+  bucket: YOUR_BUCKET_NAME
+  expiration-minutes: 5

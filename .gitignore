@@ -47,6 +47,7 @@ target/
 # --- Env/Secrets ---
 # 예: application-secret.yml, application-secret-dev.yml 등
 *-secret*.yml
+src/test/resources/application-test.yml
 # 선택: .env 류 사용 시
 .env
 .env.*
