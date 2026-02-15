@@ -15,8 +15,13 @@ public interface ClubRepository extends JpaRepository<Club, Long> {
     @EntityGraph(attributePaths = "author")
     Page<Club> findAll(Pageable pageable);
 
-    @Query("select p from Club p join fetch p.author where p.id = :id")
+    @Query("select p from Club p join fetch p.author join fetch p.category where p.id = :id")
     Optional<Club> findByIdWithAuthor(@Param("id") Long id);
+
+    boolean existsBySlug(String slug);
+
+    @EntityGraph(attributePaths = {"author", "category"})
+    Page<Club> findAllByIsPublicTrue(Pageable pageable);
 }
 
 
