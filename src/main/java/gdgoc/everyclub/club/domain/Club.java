@@ -2,9 +2,7 @@ package gdgoc.everyclub.club.domain;
 
 import gdgoc.everyclub.user.domain.User;
 import jakarta.persistence.*;
-import lombok.AccessLevel;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
@@ -15,6 +13,8 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "club")
 @Getter
+@Builder
+@AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLRestriction("deleted_at IS NULL")
 @SQLDelete(sql = "UPDATE club SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL")
@@ -24,11 +24,53 @@ public class Club {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String title;
+    @Column(nullable = false, unique = true, length = 100)
+    private String slug;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String content;
+    @Column(nullable = false, length = 20)
+    private String name;
+
+    @Column(nullable = false, length = 200)
+    private String summary;
+
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(length = 2048)
+    private String logoUrl;
+
+    @Column(length = 2048)
+    private String bannerUrl;
+
+    @Column(length = 2048)
+    private String joinFormUrl;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    @Builder.Default
+    private RecruitingStatus recruitingStatus = RecruitingStatus.OPEN;
+
+    @Column(length = 50)
+    private String department;
+
+    @Column(length = 50)
+    private String activityCycle;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean hasFee = false;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean isPublic = false;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private int likeCount = 0;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", nullable = false)
+    private Category category;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
@@ -45,20 +87,36 @@ public class Club {
     @SuppressWarnings("unused")
     private LocalDateTime deletedAt;
 
-    public Club(String title, String content, User author) {
-        if (title == null || title.isBlank()) {
-            // todo
-            // 0글자 타이틀 허용이 비즈니스 로직?
-            //
-            throw new IllegalArgumentException("Title cannot be null or blank");
+    // Legacy constructor for backward compatibility if needed, but we should update usages
+    public Club(String name, String summary, User author, Category category, String slug) {
+        if (name == null || name.isBlank()) {
+            throw new IllegalArgumentException("Name cannot be null or blank");
         }
-        this.title = title;
-        this.content = content;
+        this.name = name;
+        this.summary = summary;
         this.author = author;
+        this.category = category;
+        this.slug = slug;
+        this.recruitingStatus = RecruitingStatus.OPEN;
+        this.hasFee = false;
+        this.isPublic = false;
+        this.likeCount = 0;
     }
 
-    public void update(String title, String content) {
-        this.title = title;
-        this.content = content;
+    public void update(String name, String summary, String description,
+                       String logoUrl, String bannerUrl, String joinFormUrl,
+                       RecruitingStatus recruitingStatus, String department,
+                       String activityCycle, boolean hasFee, boolean isPublic) {
+        this.name = name;
+        this.summary = summary;
+        this.description = description;
+        this.logoUrl = logoUrl;
+        this.bannerUrl = bannerUrl;
+        this.joinFormUrl = joinFormUrl;
+        this.recruitingStatus = recruitingStatus;
+        this.department = department;
+        this.activityCycle = activityCycle;
+        this.hasFee = hasFee;
+        this.isPublic = isPublic;
     }
 }
