@@ -253,6 +253,23 @@ class ClubServiceTest {
     }
 
     @Test
+    @DisplayName("태그로 동아리를 검색한다")
+    void searchClubsByTag() {
+        // given
+        String tag = "운동";
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        given(clubRepository.findByTagsContaining(tag, pageRequest)).willReturn(new PageImpl<>(List.of(club)));
+
+        // when
+        Page<Club> result = clubService.searchClubsByTag(tag, pageRequest);
+
+        // then
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0)).isEqualTo(club);
+        verify(clubRepository).findByTagsContaining(tag, pageRequest);
+    }
+
+    @Test
     @DisplayName("동아리를 삭제한다")
     void deleteClub() {
         // given

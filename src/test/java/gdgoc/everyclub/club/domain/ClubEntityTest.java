@@ -4,6 +4,8 @@ import gdgoc.everyclub.user.domain.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -59,6 +61,28 @@ class ClubEntityTest {
         assertThat(club.isHasFee()).isEqualTo(hasFee);
         assertThat(club.isPublic()).isEqualTo(isPublic);
         assertThat(club.getLikeCount()).isEqualTo(0);
+    }
+
+    @Test
+    @DisplayName("동아리 생성 시 태그가 올바르게 설정된다")
+    void createClubWithTags() {
+        // given
+        User author = new User("John Doe", "john@example.com");
+        Category category = new Category("Academic");
+        List<String> tags = List.of("운동", "친목");
+
+        // when
+        Club club = Club.builder()
+                .name("GDGOC")
+                .author(author)
+                .category(category)
+                .slug("slug")
+                .summary("summary")
+                .tags(tags)
+                .build();
+
+        // then
+        assertThat(club.getTags()).containsExactly("운동", "친목");
     }
 
     @Test

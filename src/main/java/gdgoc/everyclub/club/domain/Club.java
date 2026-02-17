@@ -9,6 +9,8 @@ import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "club")
@@ -68,6 +70,11 @@ public class Club {
     @Builder.Default
     private int likeCount = 0;
 
+    @Convert(converter = TagListConverter.class)
+    @Column(columnDefinition = "TEXT")
+    @Builder.Default
+    private List<String> tags = new ArrayList<>();
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
@@ -101,12 +108,14 @@ public class Club {
         this.hasFee = false;
         this.isPublic = false;
         this.likeCount = 0;
+        this.tags = new ArrayList<>();
     }
 
     public void update(String name, String summary, String description,
                        String logoUrl, String bannerUrl, String joinFormUrl,
                        RecruitingStatus recruitingStatus, String department,
-                       String activityCycle, boolean hasFee, boolean isPublic) {
+                       String activityCycle, boolean hasFee, boolean isPublic,
+                       List<String> tags) {
         this.name = name;
         this.summary = summary;
         this.description = description;
@@ -118,5 +127,6 @@ public class Club {
         this.activityCycle = activityCycle;
         this.hasFee = hasFee;
         this.isPublic = isPublic;
+        this.tags = tags != null ? tags : new ArrayList<>();
     }
 }

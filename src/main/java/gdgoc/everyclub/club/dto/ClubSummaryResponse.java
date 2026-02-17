@@ -5,6 +5,7 @@ import gdgoc.everyclub.club.domain.RecruitingStatus;
 import lombok.Getter;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 public class ClubSummaryResponse {
@@ -17,6 +18,7 @@ public class ClubSummaryResponse {
     private final String activityCycle;
     private final boolean hasFee;
     private final int likeCount;
+    private final List<String> tags;
     private final Long categoryId;
     private final String categoryName;
     private final String authorName;
@@ -33,6 +35,7 @@ public class ClubSummaryResponse {
         this.activityCycle = club.getActivityCycle();
         this.hasFee = club.isHasFee();
         this.likeCount = club.getLikeCount();
+        this.tags = club.getTags();
         this.categoryId = club.getCategory() != null ? club.getCategory().getId() : null;
         this.categoryName = club.getCategory() != null ? club.getCategory().getName() : null;
         this.authorName = club.getAuthor() != null ? club.getAuthor().getName() : "Unknown";

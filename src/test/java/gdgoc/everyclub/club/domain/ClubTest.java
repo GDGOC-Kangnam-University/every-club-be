@@ -29,7 +29,7 @@ class ClubTest {
         String newSummary = "New Summary";
 
         // when
-        club.update(newName, newSummary, "Desc", null, null, null, RecruitingStatus.OPEN, null, "WEEKLY", false, true);
+        club.update(newName, newSummary, "Desc", null, null, null, RecruitingStatus.OPEN, null, "WEEKLY", false, true, null);
 
         // then
         assertThat(club.getName()).isEqualTo(newName);
@@ -67,7 +67,7 @@ class ClubTest {
                 .build();
 
         // when
-        club.update(null, "Summary", "Desc", null, null, null, RecruitingStatus.OPEN, null, "WEEKLY", false, true);
+        club.update(null, "Summary", "Desc", null, null, null, RecruitingStatus.OPEN, null, "WEEKLY", false, true, null);
 
         // then
         assertThat(club.getName()).isNull();
