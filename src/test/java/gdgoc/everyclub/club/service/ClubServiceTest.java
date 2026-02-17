@@ -1,9 +1,14 @@
 package gdgoc.everyclub.club.service;
 
+import gdgoc.everyclub.club.domain.Category;
 import gdgoc.everyclub.club.domain.Club;
+import gdgoc.everyclub.club.domain.RecruitingStatus;
 import gdgoc.everyclub.club.dto.ClubCreateRequest;
+import gdgoc.everyclub.club.dto.ClubDetailResponse;
 import gdgoc.everyclub.club.dto.ClubUpdateRequest;
+import gdgoc.everyclub.club.repository.CategoryRepository;
 import gdgoc.everyclub.club.repository.ClubRepository;
+import gdgoc.everyclub.common.exception.BusinessErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
 import gdgoc.everyclub.user.domain.User;
@@ -36,12 +41,16 @@ class ClubServiceTest {
     private ClubRepository clubRepository;
 
     @Mock
+    private CategoryRepository categoryRepository;
+
+    @Mock
     private UserService userService;
 
     @InjectMocks
     private ClubService clubService;
 
     private User author;
+    private Category category;
     private Club club;
 
     @BeforeEach
@@ -49,7 +58,19 @@ class ClubServiceTest {
         author = new User("Author", "author@example.com");
         ReflectionTestUtils.setField(author, "id", 1L);
 
-        club = new Club("Title", "Content", author);
+        category = new Category("Academic");
+        ReflectionTestUtils.setField(category, "id", 1L);
+
+        club = Club.builder()
+                .name("Name")
+                .author(author)
+                .category(category)
+                .slug("slug")
+                .summary("Summary")
+                .recruitingStatus(RecruitingStatus.OPEN)
+                .activityCycle("WEEKLY")
+                .isPublic(true)
+                .build();
         ReflectionTestUtils.setField(club, "id", 1L);
     }
 
@@ -57,8 +78,10 @@ class ClubServiceTest {
     @DisplayName("동아리를 생성한다")
     void createClub() {
         // given
-        ClubCreateRequest request = new ClubCreateRequest("Title", "Content", 1L);
+        ClubCreateRequest request = createCreateRequest("new-slug");
         given(userService.getUserById(1L)).willReturn(author);
+        given(categoryRepository.findById(1L)).willReturn(Optional.of(category));
+        given(clubRepository.existsBySlug("new-slug")).willReturn(false);
         given(clubRepository.save(any(Club.class))).willAnswer(invocation -> {
             Club savedClub = invocation.getArgument(0);
             ReflectionTestUtils.setField(savedClub, "id", 1L);
@@ -74,12 +97,42 @@ class ClubServiceTest {
     }
 
     @Test
+    @DisplayName("slug가 중복되면 동아리 생성 시 예외가 발생한다")
+    void createClub_DuplicateSlug() {
+        // given
+        ClubCreateRequest request = createCreateRequest("duplicate-slug");
+        given(clubRepository.existsBySlug("duplicate-slug")).willReturn(true);
+
+        // when & then
+        assertThatThrownBy(() -> clubService.createClub(request))
+                .isInstanceOf(LogicException.class)
+                .extracting("errorCode")
+                .isEqualTo(BusinessErrorCode.DUPLICATE_RESOURCE);
+    }
+
+    @Test
     @DisplayName("동아리 생성 시 존재하지 않는 작성자 ID면 예외가 발생한다")
     void createClub_AuthorNotFound() {
         // given
-        ClubCreateRequest request = new ClubCreateRequest("Title", "Content", 999L);
-        given(userService.getUserById(999L))
+        ClubCreateRequest request = createCreateRequest("new-slug");
+        given(userService.getUserById(1L))
                 .willThrow(new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
+
+        // when & then
+        assertThatThrownBy(() -> clubService.createClub(request))
+                .isInstanceOf(LogicException.class)
+                .extracting("errorCode")
+                .isEqualTo(ResourceErrorCode.RESOURCE_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("동아리 생성 시 존재하지 않는 카테고리 ID면 예외가 발생한다")
+    void createClub_CategoryNotFound() {
+        // given
+        ClubCreateRequest request = createCreateRequest("new-slug");
+        given(userService.getUserById(1L)).willReturn(author);
+        given(clubRepository.existsBySlug("new-slug")).willReturn(false);
+        given(categoryRepository.findById(1L)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> clubService.createClub(request))
@@ -97,18 +150,18 @@ class ClubServiceTest {
     }
 
     @Test
-    @DisplayName("동아리를 전체 조회한다")
+    @DisplayName("공개된 동아리만 전체 조회한다")
     void getClubs() {
         // given
         PageRequest pageRequest = PageRequest.of(0, 10);
-        given(clubRepository.findAll(any(PageRequest.class))).willReturn(new PageImpl<>(List.of(club)));
+        given(clubRepository.findAllByIsPublicTrue(any(PageRequest.class))).willReturn(new PageImpl<>(List.of(club)));
 
         // when
         Page<Club> clubs = clubService.getClubs(pageRequest);
 
         // then
         assertThat(clubs.getContent()).hasSize(1);
-        assertThat(clubs.getContent().get(0).getTitle()).isEqualTo("Title");
+        assertThat(clubs.getContent().get(0).getName()).isEqualTo("Name");
     }
 
     @Test
@@ -133,6 +186,34 @@ class ClubServiceTest {
     }
 
     @Test
+    @DisplayName("공개된 동아리를 ID로 조회한다")
+    void getPublicClubById() {
+        // given
+        given(clubRepository.findByIdWithAuthor(1L)).willReturn(Optional.of(club));
+
+        // when
+        ClubDetailResponse response = clubService.getPublicClubById(1L);
+
+        // then
+        assertThat(response.getId()).isEqualTo(1L);
+        assertThat(response.getName()).isEqualTo("Name");
+    }
+
+    @Test
+    @DisplayName("비공개 동아리 조회 시 예외가 발생한다")
+    void getPublicClubById_PrivateClub() {
+        // given
+        ReflectionTestUtils.setField(club, "isPublic", false);
+        given(clubRepository.findByIdWithAuthor(1L)).willReturn(Optional.of(club));
+
+        // when & then
+        assertThatThrownBy(() -> clubService.getPublicClubById(1L))
+                .isInstanceOf(LogicException.class)
+                .extracting("errorCode")
+                .isEqualTo(ResourceErrorCode.RESOURCE_NOT_FOUND);
+    }
+
+    @Test
     @DisplayName("존재하지 않는 동아리 조회 시 예외가 발생한다")
     void getClubById_NotFound() {
         // given
@@ -149,15 +230,15 @@ class ClubServiceTest {
     @DisplayName("동아리를 수정한다")
     void updateClub() {
         // given
-        ClubUpdateRequest request = new ClubUpdateRequest("New Title", "New Content");
+        ClubUpdateRequest request = createUpdateRequest();
         given(clubRepository.findByIdWithAuthor(1L)).willReturn(Optional.of(club));
 
         // when
         clubService.updateClub(1L, request);
 
         // then
-        assertThat(club.getTitle()).isEqualTo("New Title");
-        assertThat(club.getContent()).isEqualTo("New Content");
+        assertThat(club.getName()).isEqualTo("New Name");
+        assertThat(club.getSummary()).isEqualTo("New Summary");
     }
 
     @Test
@@ -182,5 +263,30 @@ class ClubServiceTest {
 
         // then
         verify(clubRepository).delete(club);
+    }
+
+    private ClubCreateRequest createCreateRequest(String slug) {
+        return ClubCreateRequest.builder()
+                .name("Name")
+                .authorId(1L)
+                .categoryId(1L)
+                .slug(slug)
+                .summary("Summary")
+                .recruitingStatus(RecruitingStatus.OPEN)
+                .activityCycle("WEEKLY")
+                .hasFee(false)
+                .isPublic(true)
+                .build();
+    }
+
+    private ClubUpdateRequest createUpdateRequest() {
+        return ClubUpdateRequest.builder()
+                .name("New Name")
+                .summary("New Summary")
+                .recruitingStatus(RecruitingStatus.OPEN)
+                .activityCycle("WEEKLY")
+                .hasFee(false)
+                .isPublic(true)
+                .build();
     }
 }

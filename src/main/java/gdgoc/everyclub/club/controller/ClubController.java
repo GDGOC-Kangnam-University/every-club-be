@@ -1,10 +1,11 @@
 package gdgoc.everyclub.club.controller;
 
-import gdgoc.everyclub.club.dto.ClubCreateRequest;
-import gdgoc.everyclub.club.dto.ClubResponse;
-import gdgoc.everyclub.club.dto.ClubUpdateRequest;
+import gdgoc.everyclub.club.domain.Club;
+import gdgoc.everyclub.club.dto.*;
 import gdgoc.everyclub.club.service.ClubService;
 import gdgoc.everyclub.common.ApiResponse;
+import gdgoc.everyclub.common.exception.LogicException;
+import gdgoc.everyclub.common.exception.ResourceErrorCode;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -25,15 +26,15 @@ public class ClubController {
     }
 
     @GetMapping
-    public ApiResponse<Page<ClubResponse>> getClubs(Pageable pageable) {
-        Page<ClubResponse> responses = clubService.getClubs(pageable)
-                .map(ClubResponse::new);
+    public ApiResponse<Page<ClubSummaryResponse>> getClubs(Pageable pageable) {
+        Page<ClubSummaryResponse> responses = clubService.getClubs(pageable)
+                .map(ClubSummaryResponse::new);
         return ApiResponse.success(responses);
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<ClubResponse> getClub(@PathVariable Long id) {
-        ClubResponse response = new ClubResponse(clubService.getClubById(id));
+    public ApiResponse<ClubDetailResponse> getClub(@PathVariable Long id) {
+        ClubDetailResponse response = clubService.getPublicClubById(id);
         return ApiResponse.success(response);
     }
 
