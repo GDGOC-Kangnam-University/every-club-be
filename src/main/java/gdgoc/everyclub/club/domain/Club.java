@@ -13,7 +13,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "club")
+@Table(name = "club", indexes = {
+        @Index(name = "idx_club_tags", columnList = "tags")
+})
 @Getter
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
