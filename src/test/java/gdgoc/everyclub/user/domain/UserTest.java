@@ -38,4 +38,27 @@ class UserTest {
         assertThat(user.getName()).isEqualTo(newName);
         assertThat(user.getEmail()).isEqualTo(email);
     }
+
+    @Test
+    @DisplayName("유저 생성 시 이름이 null이어도 객체는 생성된다 (DB 저장 시점에 실패)")
+    void createUser_NullName() {
+        // when
+        User user = new User(null, "test@example.com");
+
+        // then
+        assertThat(user.getName()).isNull();
+    }
+
+    @Test
+    @DisplayName("유저 정보 수정 시 이름을 null로 변경할 수 있다 (DB 저장 시점에 실패)")
+    void update_NullName() {
+        // given
+        User user = new User("John Doe", "john@example.com");
+
+        // when
+        user.update(null);
+
+        // then
+        assertThat(user.getName()).isNull();
+    }
 }

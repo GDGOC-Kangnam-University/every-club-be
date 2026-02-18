@@ -7,11 +7,11 @@ import gdgoc.everyclub.user.domain.UserRole;
 import gdgoc.everyclub.user.dto.UserCreateRequest;
 import gdgoc.everyclub.user.dto.UserUpdateRequest;
 import gdgoc.everyclub.user.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.junit.jupiter.api.BeforeEach;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -71,6 +71,30 @@ class UserServiceTest {
         assertThat(capturedUser.getEmail()).isEqualTo(request.email());
         // 기본 권한은 GUEST
         assertThat(capturedUser.getRole()).isEqualTo(UserRole.GUEST);
+    }
+
+    @Test
+    @DisplayName("유저 생성 요청 시 request가 null이면 NullPointerException이 발생한다")
+    void createUser_NullRequest() {
+        // when & then
+        assertThatThrownBy(() -> userService.createUser(null))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    @DisplayName("이미 존재하는 이메일로 유저를 생성하려고 하면 예외가 발생한다")
+    void createUser_DuplicateEmail() {
+        // given
+        String duplicateEmail = "duplicate@example.com";
+        UserCreateRequest request = new UserCreateRequest("New User", duplicateEmail);
+
+        // Mocking behavior: suppose the repository throws an exception for duplicate keys
+        given(userRepository.save(any(User.class)))
+                .willThrow(new org.springframework.dao.DataIntegrityViolationException("Duplicate email"));
+
+        // when & then
+        assertThatThrownBy(() -> userService.createUser(request))
+                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
     }
 
     @Test
@@ -162,6 +186,17 @@ class UserServiceTest {
 
         // then
         verify(userRepository).delete(testUser);
+    }
+
+    @Test
+    @DisplayName("유저 정보 수정 시 request가 null이면 NullPointerException이 발생한다")
+    void updateUser_NullRequest() {
+        // given
+        Long userId = 1L;
+
+        // when & then
+        assertThatThrownBy(() -> userService.updateUser(userId, null))
+                .isInstanceOf(NullPointerException.class);
     }
 
     @Test
