@@ -9,6 +9,8 @@ import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "club")
@@ -64,9 +66,9 @@ public class Club {
     @Builder.Default
     private boolean isPublic = false;
 
-    @Column(nullable = false)
     @Builder.Default
-    private int likeCount = 0;
+    @ManyToMany(mappedBy = "likedClubs")
+    private Set<User> likedByUsers = new LinkedHashSet<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
@@ -100,7 +102,7 @@ public class Club {
         this.recruitingStatus = RecruitingStatus.OPEN;
         this.hasFee = false;
         this.isPublic = false;
-        this.likeCount = 0;
+        this.likedByUsers = new LinkedHashSet<>();
     }
 
     public void update(String name, String summary, String description,

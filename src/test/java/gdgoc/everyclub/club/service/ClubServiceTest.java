@@ -265,6 +265,58 @@ class ClubServiceTest {
         verify(clubRepository).delete(club);
     }
 
+    @Test
+    @DisplayName("좋아요를 누르지 않은 동아리에 좋아요를 누르면 좋아요 목록에 추가된다")
+    void toggleLike_Add() {
+        // given
+        User user = new User("Liker", "liker@example.com");
+        ReflectionTestUtils.setField(user, "id", 2L);
+        given(clubRepository.findById(1L)).willReturn(Optional.of(club));
+        given(userService.getUserById(2L)).willReturn(user);
+
+        // when
+        boolean isLiked = clubService.toggleLike(1L, 2L);
+
+        // then
+        assertThat(isLiked).isTrue();
+        assertThat(club.getLikedByUsers()).contains(user);
+        assertThat(user.getLikedClubs()).contains(club);
+    }
+
+    @Test
+    @DisplayName("이미 좋아요를 누른 동아리에 좋아요를 누르면 좋아요 목록에서 제거된다")
+    void toggleLike_Remove() {
+        // given
+        User user = new User("Liker", "liker@example.com");
+        ReflectionTestUtils.setField(user, "id", 2L);
+        club.getLikedByUsers().add(user);
+        user.getLikedClubs().add(club);
+        
+        given(clubRepository.findById(1L)).willReturn(Optional.of(club));
+        given(userService.getUserById(2L)).willReturn(user);
+
+        // when
+        boolean isLiked = clubService.toggleLike(1L, 2L);
+
+        // then
+        assertThat(isLiked).isFalse();
+        assertThat(club.getLikedByUsers()).doesNotContain(user);
+        assertThat(user.getLikedClubs()).doesNotContain(club);
+    }
+
+    @Test
+    @DisplayName("좋아요 토글 시 존재하지 않는 동아리 ID면 예외가 발생한다")
+    void toggleLike_ClubNotFound() {
+        // given
+        given(clubRepository.findById(1L)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> clubService.toggleLike(1L, 2L))
+                .isInstanceOf(LogicException.class)
+                .extracting("errorCode")
+                .isEqualTo(ResourceErrorCode.RESOURCE_NOT_FOUND);
+    }
+
     private ClubCreateRequest createCreateRequest(String slug) {
         return ClubCreateRequest.builder()
                 .name("Name")

@@ -176,6 +176,25 @@ class ClubControllerTest {
         verify(clubService).deleteClub(clubId);
     }
 
+    @Test
+    @DisplayName("좋아요 토글 시 200 OK와 변경된 좋아요 상태를 반환한다")
+    void toggleLike() throws Exception {
+        // given
+        Long clubId = 1L;
+        Long userId = 1L; // Mocked user ID
+        given(clubService.toggleLike(eq(clubId), eq(userId))).willReturn(true);
+
+        // when & then
+        mockMvc.perform(post("/clubs/{id}/like", clubId)
+                        .header("X-User-Id", userId)) // Assume user ID passed via header for now as a mock
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.data").value(true));
+
+        verify(clubService).toggleLike(eq(clubId), eq(userId));
+    }
+
     private ClubCreateRequest createCreateRequest(String name, String slug) {
         return ClubCreateRequest.builder()
                 .name(name)
