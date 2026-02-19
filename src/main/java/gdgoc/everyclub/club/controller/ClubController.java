@@ -38,6 +38,15 @@ public class ClubController {
         return ApiResponse.success(response);
     }
 
+    @GetMapping("/search")
+    public ApiResponse<Page<ClubSummaryResponse>> searchClubsByTag(
+            @RequestParam String tag,
+            Pageable pageable) {
+        Page<ClubSummaryResponse> responses = clubService.searchClubsByTag(tag, pageable)
+                .map(ClubSummaryResponse::new);
+        return ApiResponse.success(responses);
+    }
+
     @PutMapping("/{id}")
     public ApiResponse<Void> updateClub(@PathVariable Long id, @RequestBody @Valid ClubUpdateRequest request) {
         clubService.updateClub(id, request);

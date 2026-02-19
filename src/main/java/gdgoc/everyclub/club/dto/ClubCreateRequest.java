@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Builder;
 
+import java.util.List;
+
 @Builder
 public record ClubCreateRequest(
         @NotBlank(message = "Name must not be empty")
@@ -48,6 +50,8 @@ public record ClubCreateRequest(
 
         boolean hasFee,
 
-        boolean isPublic
+        boolean isPublic,
+
+        List<String> tags
 ) {
 }

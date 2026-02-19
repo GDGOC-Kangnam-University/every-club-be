@@ -13,6 +13,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
@@ -27,6 +29,28 @@ class ClubRepositoryTest {
 
     @Autowired
     private CategoryRepository categoryRepository;
+
+    @Test
+    @DisplayName("태그로 동아리를 검색한다")
+    void findByTagsContaining() {
+        // given
+        User author = userRepository.save(new User("John Doe", "john@example.com"));
+        Category category = categoryRepository.save(new Category("Academic"));
+        
+        clubRepository.save(Club.builder().name("Club 1").author(author).category(category).slug("slug1").summary("s").tags(List.of("운동", "친목")).isPublic(true).build());
+        clubRepository.save(Club.builder().name("Club 2").author(author).category(category).slug("slug2").summary("s").tags(List.of("공부", "GDGOC")).isPublic(true).build());
+        clubRepository.save(Club.builder().name("Club 3").author(author).category(category).slug("slug3").summary("s").tags(List.of("친목", "공부")).isPublic(true).build());
+
+        // when
+        Page<Club> sportsClubs = clubRepository.findByTagsContaining("운동", PageRequest.of(0, 10));
+        Page<Club> studyClubs = clubRepository.findByTagsContaining("공부", PageRequest.of(0, 10));
+        Page<Club> hobbyClubs = clubRepository.findByTagsContaining("친목", PageRequest.of(0, 10));
+
+        // then
+        assertThat(sportsClubs.getContent()).hasSize(1);
+        assertThat(studyClubs.getContent()).hasSize(2);
+        assertThat(hobbyClubs.getContent()).hasSize(2);
+    }
 
     @Test
     @DisplayName("slug로 동아리 존재 여부를 확인한다")

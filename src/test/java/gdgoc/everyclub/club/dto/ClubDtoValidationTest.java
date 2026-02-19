@@ -41,7 +41,8 @@ class ClubDtoValidationTest {
                 null, // department ok
                 null, // activityCycle ok
                 false, // hasFee
-                true // isPublic
+                true, // isPublic
+                null // tags
         );
 
         // when

@@ -162,6 +162,39 @@ class ClubControllerTest {
     }
 
     @Test
+    @DisplayName("태그로 동아리 검색 시 200 OK와 동아리 리스트를 반환한다")
+    void searchClubsByTag() throws Exception {
+        // given
+        String tag = "운동";
+        User author = new User("Author", "author@example.com");
+        Category category = new Category("Academic");
+        Club club = Club.builder()
+                .name("Sports Club")
+                .author(author)
+                .category(category)
+                .slug("sports")
+                .summary("Summary")
+                .tags(List.of("운동", "친목"))
+                .isPublic(true)
+                .build();
+        ReflectionTestUtils.setField(club, "id", 1L);
+
+        given(clubService.searchClubsByTag(eq(tag), any(PageRequest.class)))
+                .willReturn(new PageImpl<>(List.of(club)));
+
+        // when & then
+        mockMvc.perform(get("/clubs/search")
+                        .param("tag", tag)
+                        .param("page", "0")
+                        .param("size", "10"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.content[0].name").value("Sports Club"))
+                .andExpect(jsonPath("$.data.content[0].tags[0]").value("운동"));
+    }
+
+    @Test
     @DisplayName("동아리 삭제 시 200 OK를 반환한다")
     void deleteClub() throws Exception {
         // given
@@ -187,6 +220,7 @@ class ClubControllerTest {
                 .activityCycle("WEEKLY")
                 .hasFee(false)
                 .isPublic(true)
+                .tags(List.of("tag1", "tag2"))
                 .build();
     }
 
@@ -198,6 +232,7 @@ class ClubControllerTest {
                 .activityCycle("WEEKLY")
                 .hasFee(false)
                 .isPublic(true)
+                .tags(List.of("tag1", "tag2"))
                 .build();
     }
 }
