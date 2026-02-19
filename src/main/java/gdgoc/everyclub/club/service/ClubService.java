@@ -2,9 +2,7 @@ package gdgoc.everyclub.club.service;
 
 import gdgoc.everyclub.club.domain.Category;
 import gdgoc.everyclub.club.domain.Club;
-import gdgoc.everyclub.club.dto.ClubCreateRequest;
-import gdgoc.everyclub.club.dto.ClubDetailResponse;
-import gdgoc.everyclub.club.dto.ClubUpdateRequest;
+import gdgoc.everyclub.club.dto.*;
 import gdgoc.everyclub.club.repository.CategoryRepository;
 import gdgoc.everyclub.club.repository.ClubRepository;
 import gdgoc.everyclub.common.exception.BusinessErrorCode;
@@ -61,6 +59,13 @@ public class ClubService {
         return club.getId();
     }
 
+    public Page<ClubSummaryResponse> getClubsWithLikeCounts(Pageable pageable) {
+        if (pageable == null) {
+            throw new IllegalArgumentException("Pageable cannot be null");
+        }
+        return clubRepository.findAllPublicWithLikeCounts(pageable);
+    }
+
     public Page<Club> getClubs(Pageable pageable) {
         if (pageable == null) {
             throw new IllegalArgumentException("Pageable cannot be null");
@@ -74,11 +79,23 @@ public class ClubService {
     }
 
     public ClubDetailResponse getPublicClubById(Long id) {
+        return getPublicClubById(id, null);
+    }
+
+    public ClubDetailResponse getPublicClubById(Long id, Long userId) {
         Club club = getClubById(id);
         if (!club.isPublic()) {
             throw new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND);
         }
-        return new ClubDetailResponse(club);
+        
+        boolean isLiked = false;
+        if (userId != null) {
+            isLiked = clubRepository.existsLikeByUserIdAndClubId(userId, id);
+        }
+
+        int likeCount = clubRepository.countLikesByClubId(id);
+        
+        return new ClubDetailResponse(club, isLiked, likeCount);
     }
 
     @Transactional
@@ -106,5 +123,24 @@ public class ClubService {
     public void deleteClub(Long id) {
         Club club = getClubById(id);
         clubRepository.delete(club);
+    }
+
+    @Transactional
+    public boolean toggleLike(Long clubId, Long userId) {
+        Club club = clubRepository.findById(clubId)
+                .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
+        User user = userService.getUserById(userId);
+
+        boolean alreadyLiked = clubRepository.existsLikeByUserIdAndClubId(userId, clubId);
+
+        if (alreadyLiked) {
+            user.getLikedClubs().remove(club);
+            club.getLikedByUsers().remove(user);
+            return false;
+        } else {
+            user.getLikedClubs().add(club);
+            club.getLikedByUsers().add(user);
+            return true;
+        }
     }
 }

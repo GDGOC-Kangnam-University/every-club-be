@@ -1,5 +1,6 @@
 package gdgoc.everyclub.user.domain;
 
+import gdgoc.everyclub.club.domain.Club;
 import gdgoc.everyclub.user.dto.UserCreateRequest;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -9,6 +10,8 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SQLDelete;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -28,6 +31,15 @@ public class User {
     private String name;
     @Column(nullable = false, unique = true)
     private String email;
+
+    @ManyToMany
+    @JoinTable(
+            name = "club_likes",
+            joinColumns = @JoinColumn(name = "user_id"),
+            inverseJoinColumns = @JoinColumn(name = "club_id"),
+            uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "club_id"})
+    )
+    private Set<Club> likedClubs = new LinkedHashSet<>();
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

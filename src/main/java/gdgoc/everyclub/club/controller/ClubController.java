@@ -27,14 +27,16 @@ public class ClubController {
 
     @GetMapping
     public ApiResponse<Page<ClubSummaryResponse>> getClubs(Pageable pageable) {
-        Page<ClubSummaryResponse> responses = clubService.getClubs(pageable)
-                .map(ClubSummaryResponse::new);
+        Page<ClubSummaryResponse> responses = clubService.getClubsWithLikeCounts(pageable);
         return ApiResponse.success(responses);
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<ClubDetailResponse> getClub(@PathVariable Long id) {
-        ClubDetailResponse response = clubService.getPublicClubById(id);
+    public ApiResponse<ClubDetailResponse> getClub(
+            @PathVariable Long id,
+            @RequestHeader(name = "X-User-Id", required = false) Long userId
+    ) {
+        ClubDetailResponse response = clubService.getPublicClubById(id, userId);
         return ApiResponse.success(response);
     }
 
@@ -48,5 +50,15 @@ public class ClubController {
     public ApiResponse<Void> deleteClub(@PathVariable Long id) {
         clubService.deleteClub(id);
         return ApiResponse.success();
+    }
+
+    @PostMapping("/{id}/like")
+    public ApiResponse<Boolean> toggleLike(
+            @PathVariable Long id,
+            // TODO: Security Vulnerability - Replace with @AuthenticationPrincipal after implementing Spring Security
+            @RequestHeader(name = "X-User-Id") Long userId
+    ) {
+        boolean isLiked = clubService.toggleLike(id, userId);
+        return ApiResponse.success(isLiked);
     }
 }
