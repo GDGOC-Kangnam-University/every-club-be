@@ -7,6 +7,8 @@ import gdgoc.everyclub.club.dto.ClubDetailResponse;
 import gdgoc.everyclub.club.dto.ClubUpdateRequest;
 import gdgoc.everyclub.club.repository.CategoryRepository;
 import gdgoc.everyclub.club.repository.ClubRepository;
+import gdgoc.everyclub.college.domain.Major;
+import gdgoc.everyclub.college.repository.MajorRepository;
 import gdgoc.everyclub.common.exception.BusinessErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
@@ -24,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class ClubService {
     private final ClubRepository clubRepository;
     private final CategoryRepository categoryRepository;
+    private final MajorRepository majorRepository;
     private final UserService userService;
 
     @Transactional
@@ -40,6 +43,12 @@ public class ClubService {
         Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
 
+        Major major = null;
+        if (request.majorId() != null) {
+            major = majorRepository.findById(request.majorId())
+                    .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
+        }
+
         Club club = Club.builder()
                 .name(request.name())
                 .author(author)
@@ -51,7 +60,7 @@ public class ClubService {
                 .bannerUrl(request.bannerUrl())
                 .joinFormUrl(request.joinFormUrl())
                 .recruitingStatus(request.recruitingStatus())
-                .department(request.department())
+                .major(major)
                 .activityCycle(request.activityCycle())
                 .hasFee(request.hasFee())
                 .isPublic(request.isPublic())
@@ -87,6 +96,13 @@ public class ClubService {
             throw new NullPointerException("ClubUpdateRequest cannot be null");
         }
         Club club = getClubById(id);
+
+        Major major = null;
+        if (request.majorId() != null) {
+            major = majorRepository.findById(request.majorId())
+                    .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
+        }
+
         club.update(
                 request.name(),
                 request.summary(),
@@ -95,7 +111,7 @@ public class ClubService {
                 request.bannerUrl(),
                 request.joinFormUrl(),
                 request.recruitingStatus(),
-                request.department(),
+                major,
                 request.activityCycle(),
                 request.hasFee(),
                 request.isPublic()

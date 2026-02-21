@@ -1,5 +1,6 @@
 package gdgoc.everyclub.club.domain;
 
+import gdgoc.everyclub.college.domain.Major;
 import gdgoc.everyclub.user.domain.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -50,8 +51,9 @@ public class Club {
     @Builder.Default
     private RecruitingStatus recruitingStatus = RecruitingStatus.OPEN;
 
-    @Column(length = 50)
-    private String department;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "major_id")
+    private Major major;
 
     @Column(length = 50)
     private String activityCycle;
@@ -105,7 +107,7 @@ public class Club {
 
     public void update(String name, String summary, String description,
                        String logoUrl, String bannerUrl, String joinFormUrl,
-                       RecruitingStatus recruitingStatus, String department,
+                       RecruitingStatus recruitingStatus, Major major,
                        String activityCycle, boolean hasFee, boolean isPublic) {
         this.name = name;
         this.summary = summary;
@@ -114,7 +116,7 @@ public class Club {
         this.bannerUrl = bannerUrl;
         this.joinFormUrl = joinFormUrl;
         this.recruitingStatus = recruitingStatus;
-        this.department = department;
+        this.major = major;
         this.activityCycle = activityCycle;
         this.hasFee = hasFee;
         this.isPublic = isPublic;
