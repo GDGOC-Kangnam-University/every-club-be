@@ -1,6 +1,7 @@
 package gdgoc.everyclub.storage.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gdgoc.everyclub.security.jwt.JwtProvider;
 import gdgoc.everyclub.storage.dto.PresignedUrlRequest;
 import gdgoc.everyclub.storage.dto.PresignedUrlResponse;
 import gdgoc.everyclub.storage.service.S3Service;
@@ -29,6 +30,9 @@ class FileControllerTest {
 
     @MockitoBean
     private S3Service s3Service;
+
+    @MockitoBean
+    private JwtProvider jwtProvider;
 
     @Autowired
     private ObjectMapper objectMapper;
