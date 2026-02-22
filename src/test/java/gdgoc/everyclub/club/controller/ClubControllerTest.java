@@ -9,6 +9,7 @@ import gdgoc.everyclub.club.dto.ClubDetailResponse;
 import gdgoc.everyclub.club.dto.ClubUpdateRequest;
 import gdgoc.everyclub.club.service.ClubService;
 import gdgoc.everyclub.common.exception.LogicException;
+import gdgoc.everyclub.security.jwt.JwtProvider;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
 import gdgoc.everyclub.user.domain.User;
 import org.junit.jupiter.api.DisplayName;
@@ -44,6 +45,9 @@ class ClubControllerTest {
 
     @MockitoBean
     private ClubService clubService;
+
+    @MockitoBean
+    private JwtProvider jwtProvider;
 
     @Autowired
     private ObjectMapper objectMapper;

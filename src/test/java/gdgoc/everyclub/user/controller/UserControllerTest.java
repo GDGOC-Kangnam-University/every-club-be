@@ -3,6 +3,7 @@ package gdgoc.everyclub.user.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gdgoc.everyclub.auth.EmailService;
 import gdgoc.everyclub.common.exception.LogicException;
+import gdgoc.everyclub.security.jwt.JwtProvider;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
 import gdgoc.everyclub.user.domain.User;
 import gdgoc.everyclub.user.dto.UserCreateRequest;
@@ -39,6 +40,9 @@ class UserControllerTest {
 
     @MockitoBean
     private EmailService emailService;
+
+    @MockitoBean
+    private JwtProvider jwtProvider;
 
     @Autowired
     private ObjectMapper objectMapper;
