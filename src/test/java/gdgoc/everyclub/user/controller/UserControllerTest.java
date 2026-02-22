@@ -4,31 +4,32 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import gdgoc.everyclub.auth.EmailService;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
+import gdgoc.everyclub.security.dto.CustomUserDetails;
 import gdgoc.everyclub.user.domain.User;
-import gdgoc.everyclub.user.dto.UserCreateRequest;
 import gdgoc.everyclub.user.dto.UserUpdateRequest;
 import gdgoc.everyclub.user.service.UserService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(value = UserController.class, excludeAutoConfiguration = SecurityAutoConfiguration.class)
+@WebMvcTest(UserController.class)
 class UserControllerTest {
 
     @Autowired
@@ -43,183 +44,143 @@ class UserControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    private CustomUserDetails createUserDetails() {
+        return new CustomUserDetails(1L, "john@example.com", null, "ROLE_USER");
+    }
+
     @Test
-    @DisplayName("유저 생성 요청 시 200 OK와 생성된 유저 ID를 반환한다")
-    void createUser() throws Exception {
+    @DisplayName("GET /api/users/me - 현재 인증된 유저의 프로필을 반환한다")
+    void getMyProfile() throws Exception {
         // given
-        UserCreateRequest request = new UserCreateRequest("John Doe", "john@example.com");
-        given(userService.createUser(any(UserCreateRequest.class))).willReturn(1L);
+        User user = User.builder()
+                .email("john@example.com")
+                .nickname("John Doe")
+                .department("Computer Science")
+                .studentId("20230001")
+                .build();
+        given(userService.getUserById(1L)).willReturn(user);
 
         // when & then
-        mockMvc.perform(post("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(get("/api/users/me")
+                        .with(user(createUserDetails())))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
-                .andExpect(jsonPath("$.data").value(1L));
+                .andExpect(jsonPath("$.data.nickname").value("John Doe"))
+                .andExpect(jsonPath("$.data.email").value("john@example.com"))
+                .andExpect(jsonPath("$.data.department").value("Computer Science"))
+                .andExpect(jsonPath("$.data.studentId").value("20230001"));
     }
 
     @Test
-    @DisplayName("유저 생성 요청 시 필수 값이 누락되면 400 Bad Request를 반환한다")
-    void createUser_InvalidInput() throws Exception {
+    @DisplayName("GET /api/users/me - 유저가 존재하지 않으면 404를 반환한다")
+    void getMyProfile_NotFound() throws Exception {
         // given
-        UserCreateRequest request = new UserCreateRequest("", ""); // Invalid
-
-        // when & then
-        mockMvc.perform(post("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value("ERROR"))
-                .andExpect(jsonPath("$.message").exists());
-    }
-
-    @Test
-    @DisplayName("유저 생성 요청 시 이름이 null이면 400 Bad Request를 반환한다")
-    void createUser_NullName() throws Exception {
-        // given
-        UserCreateRequest request = new UserCreateRequest(null, "john@example.com");
-
-        // when & then
-        mockMvc.perform(post("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value("ERROR"));
-    }
-
-    @Test
-    @DisplayName("유저 생성 요청 시 이메일이 null이면 400 Bad Request를 반환한다")
-    void createUser_NullEmail() throws Exception {
-        // given
-        UserCreateRequest request = new UserCreateRequest("John Doe", null);
-
-        // when & then
-        mockMvc.perform(post("/users")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value("ERROR"));
-    }
-
-    @Test
-    @DisplayName("모든 유저 조회 시 200 OK와 유저 리스트를 반환한다")
-    void getUsers() throws Exception {
-        // given
-        User user1 = new User("User1", "user1@example.com");
-        User user2 = new User("User2", "user2@example.com");
-        given(userService.getUsers()).willReturn(List.of(user1, user2));
-
-        // when & then
-        mockMvc.perform(get("/users"))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("SUCCESS"))
-                .andExpect(jsonPath("$.data").isArray())
-                .andExpect(jsonPath("$.data[0].name").value("User1"))
-                .andExpect(jsonPath("$.data[0].email").value("user1@example.com"))
-                .andExpect(jsonPath("$.data[1].name").value("User2"));
-    }
-
-    @Test
-    @DisplayName("특정 유저 조회 시 200 OK와 유저 정보를 반환한다")
-    void getUser() throws Exception {
-        // given
-        Long userId = 1L;
-        User user = new User("John Doe", "john@example.com");
-        given(userService.getUserById(userId)).willReturn(user);
-
-        // when & then
-        mockMvc.perform(get("/users/{id}", userId))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.name").value("John Doe"))
-                .andExpect(jsonPath("$.data.email").value("john@example.com"));
-    }
-
-    @Test
-    @DisplayName("존재하지 않는 유저 조회 시 404 Not Found를 반환한다")
-    void getUser_NotFound() throws Exception {
-        // given
-        Long userId = 999L;
-        given(userService.getUserById(userId))
+        given(userService.getUserById(1L))
                 .willThrow(new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
 
         // when & then
-        mockMvc.perform(get("/users/{id}", userId))
+        mockMvc.perform(get("/api/users/me")
+                        .with(user(createUserDetails())))
                 .andDo(print())
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.status").value("ERROR"))
-                .andExpect(jsonPath("$.message").value(ResourceErrorCode.RESOURCE_NOT_FOUND.getDefaultMessage()));
+                .andExpect(jsonPath("$.status").value("ERROR"));
     }
 
     @Test
-    @DisplayName("유저 정보 수정 시 200 OK를 반환한다")
-    void updateUser() throws Exception {
+    @DisplayName("PATCH /api/users/me - 현재 인증된 유저의 프로필을 수정한다")
+    void updateMyProfile() throws Exception {
         // given
-        Long userId = 1L;
-        UserUpdateRequest request = new UserUpdateRequest("Updated Name");
+        UserUpdateRequest request = new UserUpdateRequest("Updated Nickname", "Computer Science", "20230001", "010-1234-5678", "Hello!");
+        User updatedUser = User.builder()
+                .email("john@example.com")
+                .nickname("Updated Nickname")
+                .department("Computer Science")
+                .studentId("20230001")
+                .phoneNumber("010-1234-5678")
+                .bio("Hello!")
+                .build();
+        given(userService.getUserById(1L)).willReturn(updatedUser);
 
         // when & then
-        mockMvc.perform(put("/users/{id}", userId)
+        mockMvc.perform(patch("/api/users/me")
+                        .with(user(createUserDetails()))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.nickname").value("Updated Nickname"))
+                .andExpect(jsonPath("$.data.department").value("Computer Science"));
+
+        verify(userService).updateUser(eq(1L), any(UserUpdateRequest.class));
+    }
+
+    @Test
+    @DisplayName("PATCH /api/users/me - 부분 업데이트도 가능하다 (일부 필드만 전송)")
+    void updateMyProfile_Partial() throws Exception {
+        // given
+        UserUpdateRequest request = new UserUpdateRequest("Updated Nickname", null, null, null, null);
+        User updatedUser = User.builder()
+                .email("john@example.com")
+                .nickname("Updated Nickname")
+                .build();
+        given(userService.getUserById(1L)).willReturn(updatedUser);
+
+        // when & then
+        mockMvc.perform(patch("/api/users/me")
+                        .with(user(createUserDetails()))
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"));
 
-        verify(userService).updateUser(eq(userId), any(UserUpdateRequest.class));
+        verify(userService).updateUser(eq(1L), any(UserUpdateRequest.class));
     }
 
     @Test
-    @DisplayName("유저 정보 수정 시 이름이 null이면 400 Bad Request를 반환한다")
-    void updateUser_NullName() throws Exception {
-        // given
-        Long userId = 1L;
-        UserUpdateRequest request = new UserUpdateRequest(null);
-
+    @DisplayName("DELETE /api/users/me - 현재 인증된 유저의 계정을 삭제한다 (204 No Content)")
+    void deleteMyAccount() throws Exception {
         // when & then
-        mockMvc.perform(put("/users/{id}", userId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+        mockMvc.perform(delete("/api/users/me")
+                        .with(user(createUserDetails()))
+                        .with(csrf()))
                 .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value("ERROR"));
-    }
-
-    @Test
-    @DisplayName("유저 정보 수정 시 이름이 빈 문자열이면 400 Bad Request를 반환한다")
-    void updateUser_BlankName() throws Exception {
-        // given
-        Long userId = 1L;
-        UserUpdateRequest request = new UserUpdateRequest(" ");
-
-        // when & then
-        mockMvc.perform(put("/users/{id}", userId)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value("ERROR"));
-    }
-
-    @Test
-    @DisplayName("유저 삭제 시 200 OK를 반환한다")
-    void deleteUser() throws Exception {
-        // given
-        Long userId = 1L;
-
-        // when & then
-        mockMvc.perform(delete("/users/{id}", userId))
-                .andDo(print())
-                .andExpect(status().isOk())
+                .andExpect(status().isNoContent())
                 .andExpect(jsonPath("$.status").value("SUCCESS"));
 
-        verify(userService).deleteUser(userId);
+        verify(userService).deleteUser(1L);
+    }
+
+    @Test
+    @DisplayName("POST /api/users/check-email - 학교 이메일인지 확인한다")
+    void checkEmail() throws Exception {
+        // given - EmailService expects @knu.ac.kr pattern
+        given(emailService.isSchoolEmail("student@knu.ac.kr")).willReturn(true);
+        given(emailService.isSchoolEmail("test@gmail.com")).willReturn(false);
+
+        // when & then - school email
+        mockMvc.perform(post("/api/users/check-email")
+                        .with(user(createUserDetails()))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("student@knu.ac.kr"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.data").value(true));
+
+        // when & then - non-school email
+        mockMvc.perform(post("/api/users/check-email")
+                        .with(user(createUserDetails()))
+                        .with(csrf())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("test@gmail.com"))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").value(false));
     }
 }

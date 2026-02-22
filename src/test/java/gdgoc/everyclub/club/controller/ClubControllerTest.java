@@ -84,7 +84,7 @@ class ClubControllerTest {
     @DisplayName("모든 동아리 조회 시 200 OK와 동아리 리스트를 반환한다")
     void getClubs() throws Exception {
         // given
-        User author = new User("Author", "author@example.com");
+        User author = User.builder().email("author@example.com").nickname("Author").build();
         Category category = new Category("Academic");
         Club club = Club.builder()
                 .name("Name")
@@ -117,7 +117,7 @@ class ClubControllerTest {
     void getClub() throws Exception {
         // given
         Long clubId = 1L;
-        User author = new User("Author", "author@example.com");
+        User author = User.builder().email("author@example.com").nickname("Author").build();
         Category category = new Category("Academic");
         Club club = Club.builder()
                 .name("Name")

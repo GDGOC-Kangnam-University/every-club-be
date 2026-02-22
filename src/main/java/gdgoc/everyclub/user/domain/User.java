@@ -3,10 +3,12 @@ package gdgoc.everyclub.user.domain;
 import gdgoc.everyclub.user.dto.UserCreateRequest;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -24,28 +26,67 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
-    private String name;
     @Column(nullable = false, unique = true)
     private String email;
+
+    private String nickname;
+
+    private String profileImageUrl;
+
+    private String department;
+
+    private String studentId;
+
+    private String phoneNumber;
+
+    @Column(length = 500)
+    private String bio;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @UpdateTimestamp
+    private LocalDateTime updatedAt;
+
     @SuppressWarnings("unused") // Handled on @SQLDelete
     private LocalDateTime deletedAt;
 
-    public User(String name, String email) {
-        this.name = name;
+    @Builder
+    public User(String email, String nickname, String profileImageUrl,
+                String department, String studentId, String phoneNumber, String bio) {
         this.email = email;
+        this.nickname = nickname;
+        this.profileImageUrl = profileImageUrl;
+        this.department = department;
+        this.studentId = studentId;
+        this.phoneNumber = phoneNumber;
+        this.bio = bio;
     }
 
     public User(UserCreateRequest request) {
-        this.name = request.name();
         this.email = request.email();
+        this.nickname = request.nickname();
     }
-    public void update(String name) {
-        this.name = name;
+
+    public void updateProfile(String nickname, String department, String studentId,
+                              String phoneNumber, String bio) {
+        this.nickname = nickname;
+        this.department = department;
+        this.studentId = studentId;
+        this.phoneNumber = phoneNumber;
+        this.bio = bio;
+    }
+
+    public void updateProfileImage(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+    }
+
+    /**
+     * Returns the display name for the user.
+     * Uses nickname if available, otherwise falls back to email prefix.
+     */
+    public String getName() {
+        return nickname != null ? nickname : email.substring(0, email.indexOf('@'));
     }
 }

@@ -110,7 +110,9 @@ class JwtProviderTest {
             Authentication authentication = createAuthentication(1L, "ROLE_USER");
             String token = jwtProvider.generateToken(authentication).getAccessToken();
             // 토큰 마지막 문자를 변경하여 서명 위조
-            String tampered = token.substring(0, token.length() - 1) + (token.endsWith("A") ? "B" : "A");
+            char lastChar = token.charAt(token.length() - 1);
+            char newChar = lastChar == 'A' ? 'B' : 'A';
+            String tampered = token.substring(0, token.length() - 1) + newChar;
 
             assertThat(jwtProvider.validateToken(tampered)).isFalse();
         }
