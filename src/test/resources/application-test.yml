@@ -1,0 +1,22 @@
+jwt:
+  secret: dGVzdC1zZWNyZXQta2V5LXRoYXQtaXMtbG9uZy1lbm91Z2gtZm9yLWpqd3QtaHM1MTItYWxnb3JpdGhtLWF0LWxlYXN0LTUxMi1iaXRzLWxvbmc=
+  expiration: 60
+
+s3:
+  endpoint: https://storage.googleapis.com
+  region: auto
+  access-key: test-access-key
+  secret-key: test-secret-key
+  bucket: everyclub
+  expiration-minutes: 5
+
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        highlight_sql: false
+
