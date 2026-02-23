@@ -51,4 +51,17 @@ public class ClubRequest {
     @CreationTimestamp
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public void approve(User admin) {
+        this.status = RequestStatus.APPROVED;
+        this.reviewedBy = admin;
+        this.reviewedAt = LocalDateTime.now();
+    }
+
+    public void reject(User admin, String memo) {
+        this.status = RequestStatus.REJECTED;
+        this.reviewedBy = admin;
+        this.reviewedAt = LocalDateTime.now();
+        this.adminMemo = memo;
+    }
 }
