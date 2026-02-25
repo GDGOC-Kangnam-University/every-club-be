@@ -50,3 +50,7 @@ spring:
       enabled: false
     swagger-ui:
       enabled: false
+
+jwt:
+  secret: dGVzdHNlY3JldGtleWZvcmludGVncmF0aW9udGVzdHNvbmx5
+  expiration: 120
