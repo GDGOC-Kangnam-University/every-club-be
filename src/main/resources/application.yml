@@ -13,6 +13,10 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
 
 s3:
   endpoint: ${S3_ENDPOINT:https://storage.googleapis.com}
@@ -45,6 +49,8 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+  flyway:
+    enabled: false
   springdoc:
     api-docs:
       enabled: false
