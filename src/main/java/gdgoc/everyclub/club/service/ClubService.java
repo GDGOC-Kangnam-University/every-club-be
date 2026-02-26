@@ -55,6 +55,7 @@ public class ClubService {
                 .activityCycle(request.activityCycle())
                 .hasFee(request.hasFee())
                 .isPublic(request.isPublic())
+                .tags(request.tags())
                 .build();
 
         clubRepository.save(club);
@@ -98,7 +99,8 @@ public class ClubService {
                 request.department(),
                 request.activityCycle(),
                 request.hasFee(),
-                request.isPublic()
+                request.isPublic(),
+                request.tags()
         );
     }
 

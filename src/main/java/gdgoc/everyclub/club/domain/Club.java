@@ -109,7 +109,8 @@ public class Club {
     public void update(String name, String summary, String description,
                        String logoUrl, String bannerUrl, String joinFormUrl,
                        RecruitingStatus recruitingStatus, String department,
-                       String activityCycle, boolean hasFee, boolean isPublic) {
+                       String activityCycle, boolean hasFee, boolean isPublic,
+                       String tags) {
         this.name = name;
         this.summary = summary;
         this.description = description;
@@ -121,5 +122,6 @@ public class Club {
         this.activityCycle = activityCycle;
         this.hasFee = hasFee;
         this.isPublic = isPublic;
+        this.tags = tags;
     }
 }
