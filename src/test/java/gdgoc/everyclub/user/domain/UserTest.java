@@ -173,4 +173,29 @@ class UserTest {
         // then
         assertThat(user.getUpdatedAt()).isNull();
     }
+
+    @Test
+    @DisplayName("getName은 이메일에 @가 없으면 이메일 전체를 반환한다")
+    void getName_EmailWithoutAtSymbol_ReturnsFullEmail() {
+        // given
+        User user = User.builder()
+                .email("invalid-email-format")
+                .build();
+
+        // then
+        assertThat(user.getName()).isEqualTo("invalid-email-format");
+    }
+
+    @Test
+    @DisplayName("getName은 닉네임이 있으면 닉네임을 우선적으로 반환한다 (이메일 형식 무관)")
+    void getName_WithNickname_PrefersNicknameOverEmail() {
+        // given
+        User user = User.builder()
+                .email("invalid-email-format")
+                .nickname("MyNickname")
+                .build();
+
+        // then
+        assertThat(user.getName()).isEqualTo("MyNickname");
+    }
 }

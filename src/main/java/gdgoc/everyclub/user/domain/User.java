@@ -9,6 +9,7 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.UpdateTimestamp;
+import org.hibernate.annotations.Where;
 
 import java.time.LocalDateTime;
 
@@ -17,6 +18,7 @@ import java.time.LocalDateTime;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLDelete(sql = "UPDATE users SET deleted_at = NOW() WHERE id = ?")
+@Where(clause = "deleted_at IS NULL")
 public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -87,6 +89,10 @@ public class User {
      * Uses nickname if available, otherwise falls back to email prefix.
      */
     public String getName() {
-        return nickname != null ? nickname : email.substring(0, email.indexOf('@'));
+        if (nickname != null) {
+            return nickname;
+        }
+        int atIndex = email.indexOf('@');
+        return atIndex > 0 ? email.substring(0, atIndex) : email;
     }
 }
