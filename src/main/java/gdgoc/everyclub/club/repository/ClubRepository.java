@@ -6,6 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -35,6 +36,22 @@ public interface ClubRepository extends JpaRepository<Club, Long> {
 
     @Query("SELECT COUNT(u) FROM User u JOIN u.likedClubs c WHERE c.id = :clubId")
     int countLikesByClubId(@Param("clubId") Long clubId);
+
+    /**
+     * Atomically adds a like entry. Returns 1 if inserted, 0 if already exists.
+     * Uses native query with ON CONFLICT DO NOTHING for PostgreSQL to handle race conditions.
+     */
+    @Modifying
+    @Query(value = "INSERT INTO club_likes (user_id, club_id) VALUES (:userId, :clubId) " +
+                   "ON CONFLICT (user_id, club_id) DO NOTHING",
+           nativeQuery = true)
+    int addLikeAtomic(@Param("userId") Long userId, @Param("clubId") Long clubId);
+
+    /**
+     * Atomically removes a like entry. Returns 1 if deleted, 0 if didn't exist.
+     */
+    @Modifying
+    @Query(value = "DELETE FROM club_likes WHERE user_id = :userId AND club_id = :clubId",
+           nativeQuery = true)
+    int removeLikeAtomic(@Param("userId") Long userId, @Param("clubId") Long clubId);
 }
-
-

@@ -127,20 +127,27 @@ public class ClubService {
 
     @Transactional
     public boolean toggleLike(Long clubId, Long userId) {
-        Club club = clubRepository.findById(clubId)
-                .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
-        User user = userService.getUserById(userId);
+        // Validate club exists first using lightweight exists query
+        if (!clubRepository.existsById(clubId)) {
+            throw new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND);
+        }
 
-        boolean alreadyLiked = clubRepository.existsLikeByUserIdAndClubId(userId, clubId);
+        // Validate user exists using lightweight exists query (N+1 fix)
+        if (!userService.existsById(userId)) {
+            throw new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND);
+        }
 
-        if (alreadyLiked) {
-            user.getLikedClubs().remove(club);
-            club.getLikedByUsers().remove(user);
-            return false;
-        } else {
-            user.getLikedClubs().add(club);
-            club.getLikedByUsers().add(user);
+        // Use atomic insert with ON CONFLICT DO NOTHING for PostgreSQL
+        // This handles the race condition by making the check-and-act atomic at the database level
+        int inserted = clubRepository.addLikeAtomic(userId, clubId);
+
+        if (inserted > 0) {
+            // Like was added
             return true;
+        } else {
+            // Already liked, so remove it
+            clubRepository.removeLikeAtomic(userId, clubId);
+            return false;
         }
     }
 }

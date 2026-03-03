@@ -58,6 +58,10 @@ public class ClubController {
             // TODO: Security Vulnerability - Replace with @AuthenticationPrincipal after implementing Spring Security
             @RequestHeader(name = "X-User-Id") Long userId
     ) {
+        // Input validation: userId must be positive and not null
+        if (userId == null || userId <= 0) {
+            throw new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND);
+        }
         boolean isLiked = clubService.toggleLike(id, userId);
         return ApiResponse.success(isLiked);
     }
