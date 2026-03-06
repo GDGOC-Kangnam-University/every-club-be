@@ -11,6 +11,11 @@ s3:
   expiration-minutes: 5
 
 spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
   jpa:
     hibernate:
       ddl-auto: create-drop
@@ -19,4 +24,5 @@ spring:
       hibernate:
         format_sql: false
         highlight_sql: false
+        dialect: org.hibernate.dialect.H2Dialect
 
