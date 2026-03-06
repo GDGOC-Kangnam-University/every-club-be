@@ -282,6 +282,68 @@ class ClubServiceTest {
         verify(clubRepository).delete(club);
     }
 
+    @Test
+    @DisplayName("태그 검색 시 tag가 null이면 예외가 발생한다")
+    void searchClubsByTag_NullTag() {
+        // given
+        PageRequest pageRequest = PageRequest.of(0, 10);
+
+        // when & then
+        assertThatThrownBy(() -> clubService.searchClubsByTag(null, pageRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Tag cannot be null or blank");
+    }
+
+    @Test
+    @DisplayName("태그 검색 시 tag가 blank이면 예외가 발생한다")
+    void searchClubsByTag_BlankTag() {
+        // given
+        PageRequest pageRequest = PageRequest.of(0, 10);
+
+        // when & then
+        assertThatThrownBy(() -> clubService.searchClubsByTag("   ", pageRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Tag cannot be null or blank");
+    }
+
+    @Test
+    @DisplayName("태그 검색 시 tag가 20자를 초과하면 예외가 발생한다")
+    void searchClubsByTag_TagTooLong() {
+        // given
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        String longTag = "a".repeat(21);
+
+        // when & then
+        assertThatThrownBy(() -> clubService.searchClubsByTag(longTag, pageRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Tag must be 20 characters or less");
+    }
+
+    @Test
+    @DisplayName("태그 검색 시 Pageable이 null이면 예외가 발생한다")
+    void searchClubsByTag_NullPageable() {
+        // when & then
+        assertThatThrownBy(() -> clubService.searchClubsByTag("coding", null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Pageable cannot be null");
+    }
+
+    @Test
+    @DisplayName("태그 검색 시 정확히 20자 태그는 허용된다")
+    void searchClubsByTag_TagExactly20Chars() {
+        // given
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        String exactTag = "a".repeat(20);
+        given(clubRepository.findByTagsContaining(exactTag, pageRequest)).willReturn(new PageImpl<>(List.of(club)));
+
+        // when
+        Page<Club> clubs = clubService.searchClubsByTag(exactTag, pageRequest);
+
+        // then
+        assertThat(clubs.getContent()).hasSize(1);
+        verify(clubRepository).findByTagsContaining(exactTag, pageRequest);
+    }
+
     private ClubCreateRequest createCreateRequest(String slug) {
         return ClubCreateRequest.builder()
                 .name("Name")
