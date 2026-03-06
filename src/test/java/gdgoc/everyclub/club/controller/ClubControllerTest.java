@@ -6,6 +6,7 @@ import gdgoc.everyclub.club.domain.Club;
 import gdgoc.everyclub.club.domain.RecruitingStatus;
 import gdgoc.everyclub.club.dto.ClubCreateRequest;
 import gdgoc.everyclub.club.dto.ClubDetailResponse;
+import gdgoc.everyclub.club.dto.ClubSummaryResponse;
 import gdgoc.everyclub.club.dto.ClubUpdateRequest;
 import gdgoc.everyclub.club.service.ClubService;
 import gdgoc.everyclub.common.exception.LogicException;
@@ -98,7 +99,7 @@ class ClubControllerTest {
                 .build();
         ReflectionTestUtils.setField(club, "id", 1L);
 
-        given(clubService.getClubs(any(PageRequest.class))).willReturn(new PageImpl<>(List.of(club)));
+        given(clubService.getClubsWithLikeCounts(any(PageRequest.class))).willReturn(new PageImpl<>(List.of(new ClubSummaryResponse(club, 0))));
 
         // when & then
         mockMvc.perform(get("/clubs")
@@ -132,7 +133,7 @@ class ClubControllerTest {
                 .build();
         ReflectionTestUtils.setField(club, "id", clubId);
 
-        given(clubService.getPublicClubById(clubId)).willReturn(new ClubDetailResponse(club));
+        given(clubService.getPublicClubById(clubId, null)).willReturn(new ClubDetailResponse(club));
 
         // when & then
         mockMvc.perform(get("/clubs/{id}", clubId))
@@ -182,6 +183,7 @@ class ClubControllerTest {
         // given
         Long clubId = 1L;
         Long userId = 1L; // Mocked user ID
+        given(clubService.validateUserExists(userId)).willReturn(true);
         given(clubService.toggleLike(eq(clubId), eq(userId))).willReturn(true);
 
         // when & then

@@ -4,8 +4,10 @@ import gdgoc.everyclub.club.domain.Club;
 import gdgoc.everyclub.club.dto.*;
 import gdgoc.everyclub.club.service.ClubService;
 import gdgoc.everyclub.common.ApiResponse;
+import gdgoc.everyclub.common.exception.AuthErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -54,13 +56,13 @@ public class ClubController {
 
     @PostMapping("/{id}/like")
     public ApiResponse<Boolean> toggleLike(
-            @PathVariable Long id,
-            // TODO: Security Vulnerability - Replace with @AuthenticationPrincipal after implementing Spring Security
-            @RequestHeader(name = "X-User-Id") Long userId
+            @PathVariable @Positive(message = "Club ID must be positive") Long id,
+            @RequestHeader(name = "X-User-Id") @Positive(message = "User ID must be positive") Long userId
     ) {
-        // Input validation: userId must be positive and not null
-        if (userId == null || userId <= 0) {
-            throw new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND);
+        // Authentication check: Validate that the user exists in the system
+        // TODO: Replace with @AuthenticationPrincipal after implementing Spring Security
+        if (!clubService.validateUserExists(userId)) {
+            throw new LogicException(AuthErrorCode.AUTHENTICATION_REQUIRED);
         }
         boolean isLiked = clubService.toggleLike(id, userId);
         return ApiResponse.success(isLiked);
