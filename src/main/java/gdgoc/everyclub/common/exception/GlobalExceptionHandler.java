@@ -68,7 +68,7 @@ public class GlobalExceptionHandler {
         // TODO: ApiResponse.error(ErrorCode errorCode, String customMessage) 메서드 필요
         return ResponseEntity
                 .status(INVALID_INPUT.getStatus())
-                .body(ApiResponse.error(INVALID_INPUT, errorMessage));
+                .body(ApiResponse.error(errorMessage));
     }
 
     // 접근 권한 예외 처리

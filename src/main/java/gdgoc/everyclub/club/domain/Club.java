@@ -96,6 +96,9 @@ public class Club {
     @SuppressWarnings("unused")
     private LocalDateTime deletedAt;
 
+    @Column(length = 500)
+    private String tags;
+
     // Legacy constructor for backward compatibility if needed, but we should update usages
     public Club(String name, String summary, User author, Category category, String slug) {
         if (name == null || name.isBlank()) {

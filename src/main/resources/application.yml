@@ -13,6 +13,10 @@ spring:
     properties:
       hibernate:
         format_sql: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
 
 s3:
   endpoint: ${S3_ENDPOINT:https://storage.googleapis.com}
@@ -26,6 +30,10 @@ springdoc:
     path: /v3/api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+jwt:
+  secret: ${JWT_SECRET}
+  expiration: 120
 
 ---
 
@@ -41,8 +49,14 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+  flyway:
+    enabled: false
   springdoc:
     api-docs:
       enabled: false
     swagger-ui:
       enabled: false
+
+jwt:
+  secret: dGhpcy1pcy1hLXZlcnktbG9uZy1zZWNyZXQta2V5LWZvci10ZXN0aW5nLXB1cnBvc2VzLW9ubHktZG8tbm90LXVzZS1pbi1wcm9kdWN0aW9uISEhISEh
+  expiration: 120
