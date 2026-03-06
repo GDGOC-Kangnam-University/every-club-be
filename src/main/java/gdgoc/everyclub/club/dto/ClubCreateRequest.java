@@ -47,6 +47,9 @@ public record ClubCreateRequest(
 
         boolean hasFee,
 
-        boolean isPublic
+        boolean isPublic,
+
+        @Size(max = 500, message = "Tags must be less than 500 characters")
+        String tags
 ) {
 }

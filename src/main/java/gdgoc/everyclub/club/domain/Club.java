@@ -89,6 +89,9 @@ public class Club {
     @SuppressWarnings("unused")
     private LocalDateTime deletedAt;
 
+    @Column(length = 500)
+    private String tags;
+
     // Legacy constructor for backward compatibility if needed, but we should update usages
     public Club(String name, String summary, User author, Category category, String slug) {
         if (name == null || name.isBlank()) {
@@ -107,8 +110,9 @@ public class Club {
 
     public void update(String name, String summary, String description,
                        String logoUrl, String bannerUrl, String joinFormUrl,
-                       RecruitingStatus recruitingStatus, Major major,
-                       String activityCycle, boolean hasFee, boolean isPublic) {
+                       RecruitingStatus recruitingStatus, String department,
+                       String activityCycle, boolean hasFee, boolean isPublic,
+                       String tags) {
         this.name = name;
         this.summary = summary;
         this.description = description;
@@ -120,5 +124,6 @@ public class Club {
         this.activityCycle = activityCycle;
         this.hasFee = hasFee;
         this.isPublic = isPublic;
+        this.tags = tags;
     }
 }
