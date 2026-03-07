@@ -28,7 +28,7 @@ public interface ClubRepository extends JpaRepository<Club, Long> {
     @EntityGraph(attributePaths = {"author", "category"})
     @Query("SELECT c FROM Club c WHERE c.isPublic = true AND (c.tags LIKE CONCAT('%;', :tag, ';%'))")
     Page<Club> findByTagsContaining(@Param("tag") String tag, Pageable pageable);
-}
+
     @Query("SELECT new gdgoc.everyclub.club.dto.ClubSummaryResponse(c, CAST(COUNT(u) AS int)) " +
            "FROM Club c LEFT JOIN c.likedByUsers u " +
            "WHERE c.isPublic = true " +
