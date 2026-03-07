@@ -38,6 +38,10 @@ public class UserService {
                 .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
     }
 
+    public boolean existsById(Long id) {
+        return userRepository.existsById(id);
+    }
+
     @Transactional
     public void updateUser(Long id, UserUpdateRequest request) {
         if (request == null) {

@@ -198,4 +198,14 @@ class UserTest {
         // then
         assertThat(user.getName()).isEqualTo("MyNickname");
     }
+
+    @Test
+    @DisplayName("유저는 생성 시 빈 좋아요 동아리 목록을 가진다")
+    void userHasEmptyLikedClubsByDefault() {
+        // given
+        User user = new User("John Doe", "john@example.com");
+
+        // then
+        assertThat(user.getLikedClubs()).isEmpty();
+    }
 }

@@ -58,7 +58,7 @@ class ClubEntityTest {
         assertThat(club.getActivityCycle()).isEqualTo(activityCycle);
         assertThat(club.isHasFee()).isEqualTo(hasFee);
         assertThat(club.isPublic()).isEqualTo(isPublic);
-        assertThat(club.getLikeCount()).isEqualTo(0);
+        assertThat(club.getLikedByUsers()).isEmpty();
     }
 
     @Test
@@ -83,7 +83,7 @@ class ClubEntityTest {
         assertThat(club.getRecruitingStatus()).isEqualTo(RecruitingStatus.OPEN);
         assertThat(club.isHasFee()).isFalse();
         assertThat(club.isPublic()).isFalse();
-        assertThat(club.getLikeCount()).isEqualTo(0);
+        assertThat(club.getLikedByUsers()).isEmpty();
     }
 
     @Test
