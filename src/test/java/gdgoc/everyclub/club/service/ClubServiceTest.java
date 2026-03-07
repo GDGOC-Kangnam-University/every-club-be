@@ -307,16 +307,16 @@ class ClubServiceTest {
     }
 
     @Test
-    @DisplayName("태그 검색 시 tag가 20자를 초과하면 예외가 발생한다")
+    @DisplayName("태그 검색 시 tag가 50자를 초과하면 예외가 발생한다")
     void searchClubsByTag_TagTooLong() {
         // given
         PageRequest pageRequest = PageRequest.of(0, 10);
-        String longTag = "a".repeat(21);
+        String longTag = "a".repeat(51);
 
         // when & then
         assertThatThrownBy(() -> clubService.searchClubsByTag(longTag, pageRequest))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Tag must be 20 characters or less");
+                .hasMessage("Tag must be 50 characters or less");
     }
 
     @Test
