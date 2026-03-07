@@ -78,6 +78,11 @@ public class User {
         this.bio = bio;
     }
 
+    public User(String nickname, String email) {
+        this.nickname = nickname;
+        this.email = email;
+    }
+
     public User(UserCreateRequest request) {
         this.email = request.email();
         this.nickname = request.nickname();
