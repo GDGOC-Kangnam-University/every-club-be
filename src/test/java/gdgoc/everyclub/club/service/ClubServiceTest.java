@@ -253,6 +253,23 @@ class ClubServiceTest {
     }
 
     @Test
+    @DisplayName("태그로 동아리를 검색한다")
+    void searchClubsByTag() {
+        // given
+        String tag = "운동";
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        given(clubRepository.findByTagsContaining(tag, pageRequest)).willReturn(new PageImpl<>(List.of(club)));
+
+        // when
+        Page<Club> result = clubService.searchClubsByTag(tag, pageRequest);
+
+        // then
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0)).isEqualTo(club);
+        verify(clubRepository).findByTagsContaining(tag, pageRequest);
+    }
+
+    @Test
     @DisplayName("동아리를 삭제한다")
     void deleteClub() {
         // given
@@ -263,22 +280,6 @@ class ClubServiceTest {
 
         // then
         verify(clubRepository).delete(club);
-    }
-
-    @Test
-    @DisplayName("태그로 동아리를 검색한다")
-    void searchClubsByTag() {
-        // given
-        PageRequest pageRequest = PageRequest.of(0, 10);
-        given(clubRepository.findByTagsContaining("coding", pageRequest)).willReturn(new PageImpl<>(List.of(club)));
-
-        // when
-        Page<Club> clubs = clubService.searchClubsByTag("coding", pageRequest);
-
-        // then
-        assertThat(clubs.getContent()).hasSize(1);
-        assertThat(clubs.getContent().get(0).getName()).isEqualTo("Name");
-        verify(clubRepository).findByTagsContaining("coding", pageRequest);
     }
 
     @Test
@@ -306,16 +307,16 @@ class ClubServiceTest {
     }
 
     @Test
-    @DisplayName("태그 검색 시 tag가 20자를 초과하면 예외가 발생한다")
+    @DisplayName("태그 검색 시 tag가 50자를 초과하면 예외가 발생한다")
     void searchClubsByTag_TagTooLong() {
         // given
         PageRequest pageRequest = PageRequest.of(0, 10);
-        String longTag = "a".repeat(21);
+        String longTag = "a".repeat(51);
 
         // when & then
         assertThatThrownBy(() -> clubService.searchClubsByTag(longTag, pageRequest))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Tag must be 20 characters or less");
+                .hasMessage("Tag must be 50 characters or less");
     }
 
     @Test

@@ -6,6 +6,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Builder;
 
+import java.util.List;
+
 @Builder
 public record ClubUpdateRequest(
         @NotBlank(message = "Name must not be empty")
@@ -40,7 +42,7 @@ public record ClubUpdateRequest(
 
         boolean isPublic,
 
-        @Size(max = 500, message = "Tags must be less than 500 characters")
-        String tags
+        @Size(max = 20, message = "Maximum 20 tags allowed")
+        List<@Size(max = 50, message = "Each tag must be less than 50 characters") String> tags
 ) {
 }

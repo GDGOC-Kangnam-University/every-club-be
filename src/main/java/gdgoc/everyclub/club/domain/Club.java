@@ -9,11 +9,15 @@ import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Set;
 
 @Entity
-@Table(name = "club")
+@Table(name = "club", indexes = {
+        @Index(name = "idx_club_tags", columnList = "tags")
+})
 @Getter
 @Builder
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
@@ -70,6 +74,11 @@ public class Club {
     @ManyToMany(mappedBy = "likedClubs")
     private Set<User> likedByUsers = new LinkedHashSet<>();
 
+    @Convert(converter = TagListConverter.class)
+    @Column(columnDefinition = "TEXT")
+    @Builder.Default
+    private List<String> tags = new ArrayList<>();
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
     private Category category;
@@ -89,9 +98,6 @@ public class Club {
     @SuppressWarnings("unused")
     private LocalDateTime deletedAt;
 
-    @Column(length = 500)
-    private String tags;
-
     // Legacy constructor for backward compatibility if needed, but we should update usages
     public Club(String name, String summary, User author, Category category, String slug) {
         if (name == null || name.isBlank()) {
@@ -106,13 +112,14 @@ public class Club {
         this.hasFee = false;
         this.isPublic = false;
         this.likedByUsers = new LinkedHashSet<>();
+        this.tags = new ArrayList<>();
     }
 
     public void update(String name, String summary, String description,
                        String logoUrl, String bannerUrl, String joinFormUrl,
                        RecruitingStatus recruitingStatus, String department,
                        String activityCycle, boolean hasFee, boolean isPublic,
-                       String tags) {
+                       List<String> tags) {
         this.name = name;
         this.summary = summary;
         this.description = description;
@@ -124,6 +131,6 @@ public class Club {
         this.activityCycle = activityCycle;
         this.hasFee = hasFee;
         this.isPublic = isPublic;
-        this.tags = tags;
+        this.tags = tags != null ? tags : new ArrayList<>();
     }
 }
