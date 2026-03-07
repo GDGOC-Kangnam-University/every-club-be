@@ -158,4 +158,17 @@ public class ClubService {
             return false;
         }
     }
+
+    public Page<Club> searchClubsByTag(String tag, Pageable pageable) {
+        if (tag == null || tag.isBlank()) {
+            throw new IllegalArgumentException("Tag cannot be null or blank");
+        }
+        if (tag.length() > 20) {
+            throw new IllegalArgumentException("Tag must be 20 characters or less");
+        }
+        if (pageable == null) {
+            throw new IllegalArgumentException("Pageable cannot be null");
+        }
+        return clubRepository.findByTagsContaining(tag, pageable);
+    }
 }
