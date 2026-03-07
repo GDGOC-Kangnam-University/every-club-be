@@ -115,7 +115,8 @@ public class ClubService {
                 request.department(),
                 request.activityCycle(),
                 request.hasFee(),
-                request.isPublic()
+                request.isPublic(),
+                request.tags()
         );
     }
 
