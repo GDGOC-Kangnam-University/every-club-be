@@ -26,6 +26,10 @@ public class ClubSummaryResponse {
     private final LocalDateTime updatedAt;
 
     public ClubSummaryResponse(Club club) {
+        this(club, 0);
+    }
+
+    public ClubSummaryResponse(Club club, int likeCount) {
         this.id = club.getId();
         this.slug = club.getSlug();
         this.name = club.getName();
@@ -34,7 +38,7 @@ public class ClubSummaryResponse {
         this.recruitingStatus = club.getRecruitingStatus();
         this.activityCycle = club.getActivityCycle();
         this.hasFee = club.isHasFee();
-        this.likeCount = club.getLikeCount();
+        this.likeCount = likeCount;
         this.tags = club.getTags();
         this.categoryId = club.getCategory() != null ? club.getCategory().getId() : null;
         this.categoryName = club.getCategory() != null ? club.getCategory().getName() : null;

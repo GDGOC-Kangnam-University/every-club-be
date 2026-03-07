@@ -4,8 +4,10 @@ import gdgoc.everyclub.club.domain.Club;
 import gdgoc.everyclub.club.dto.*;
 import gdgoc.everyclub.club.service.ClubService;
 import gdgoc.everyclub.common.ApiResponse;
+import gdgoc.everyclub.common.exception.AuthErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,14 +29,16 @@ public class ClubController {
 
     @GetMapping
     public ApiResponse<Page<ClubSummaryResponse>> getClubs(Pageable pageable) {
-        Page<ClubSummaryResponse> responses = clubService.getClubs(pageable)
-                .map(ClubSummaryResponse::new);
+        Page<ClubSummaryResponse> responses = clubService.getClubsWithLikeCounts(pageable);
         return ApiResponse.success(responses);
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<ClubDetailResponse> getClub(@PathVariable Long id) {
-        ClubDetailResponse response = clubService.getPublicClubById(id);
+    public ApiResponse<ClubDetailResponse> getClub(
+            @PathVariable Long id,
+            @RequestHeader(name = "X-User-Id", required = false) Long userId
+    ) {
+        ClubDetailResponse response = clubService.getPublicClubById(id, userId);
         return ApiResponse.success(response);
     }
 
@@ -57,5 +61,19 @@ public class ClubController {
     public ApiResponse<Void> deleteClub(@PathVariable Long id) {
         clubService.deleteClub(id);
         return ApiResponse.success();
+    }
+
+    @PostMapping("/{id}/like")
+    public ApiResponse<Boolean> toggleLike(
+            @PathVariable @Positive(message = "Club ID must be positive") Long id,
+            @RequestHeader(name = "X-User-Id") @Positive(message = "User ID must be positive") Long userId
+    ) {
+        // Authentication check: Validate that the user exists in the system
+        // TODO: Replace with @AuthenticationPrincipal after implementing Spring Security
+        if (!clubService.validateUserExists(userId)) {
+            throw new LogicException(AuthErrorCode.AUTHENTICATION_REQUIRED);
+        }
+        boolean isLiked = clubService.toggleLike(id, userId);
+        return ApiResponse.success(isLiked);
     }
 }

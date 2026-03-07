@@ -2,9 +2,7 @@ package gdgoc.everyclub.club.service;
 
 import gdgoc.everyclub.club.domain.Category;
 import gdgoc.everyclub.club.domain.Club;
-import gdgoc.everyclub.club.dto.ClubCreateRequest;
-import gdgoc.everyclub.club.dto.ClubDetailResponse;
-import gdgoc.everyclub.club.dto.ClubUpdateRequest;
+import gdgoc.everyclub.club.dto.*;
 import gdgoc.everyclub.club.repository.CategoryRepository;
 import gdgoc.everyclub.club.repository.ClubRepository;
 import gdgoc.everyclub.common.exception.BusinessErrorCode;
@@ -55,11 +53,17 @@ public class ClubService {
                 .activityCycle(request.activityCycle())
                 .hasFee(request.hasFee())
                 .isPublic(request.isPublic())
-                .tags(request.tags())
                 .build();
 
         clubRepository.save(club);
         return club.getId();
+    }
+
+    public Page<ClubSummaryResponse> getClubsWithLikeCounts(Pageable pageable) {
+        if (pageable == null) {
+            throw new IllegalArgumentException("Pageable cannot be null");
+        }
+        return clubRepository.findAllPublicWithLikeCounts(pageable);
     }
 
     public Page<Club> getClubs(Pageable pageable) {
@@ -75,11 +79,23 @@ public class ClubService {
     }
 
     public ClubDetailResponse getPublicClubById(Long id) {
+        return getPublicClubById(id, null);
+    }
+
+    public ClubDetailResponse getPublicClubById(Long id, Long userId) {
         Club club = getClubById(id);
         if (!club.isPublic()) {
             throw new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND);
         }
-        return new ClubDetailResponse(club);
+        
+        boolean isLiked = false;
+        if (userId != null) {
+            isLiked = clubRepository.existsLikeByUserIdAndClubId(userId, id);
+        }
+
+        int likeCount = clubRepository.countLikesByClubId(id);
+        
+        return new ClubDetailResponse(club, isLiked, likeCount);
     }
 
     @Transactional
@@ -108,6 +124,40 @@ public class ClubService {
     public void deleteClub(Long id) {
         Club club = getClubById(id);
         clubRepository.delete(club);
+    }
+
+    /**
+     * Validates that the user exists in the system.
+     * Temporary authentication check until Spring Security is implemented.
+     */
+    public boolean validateUserExists(Long userId) {
+        return userService.existsById(userId);
+    }
+
+    @Transactional
+    public boolean toggleLike(Long clubId, Long userId) {
+        // Validate club exists first using lightweight exists query
+        if (!clubRepository.existsById(clubId)) {
+            throw new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND);
+        }
+
+        // Validate user exists using lightweight exists query (N+1 fix)
+        if (!userService.existsById(userId)) {
+            throw new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND);
+        }
+
+        // Use atomic insert with ON CONFLICT DO NOTHING for PostgreSQL
+        // This handles the race condition by making the check-and-act atomic at the database level
+        int inserted = clubRepository.addLikeAtomic(userId, clubId);
+
+        if (inserted > 0) {
+            // Like was added
+            return true;
+        } else {
+            // Already liked, so remove it
+            clubRepository.removeLikeAtomic(userId, clubId);
+            return false;
+        }
     }
 
     public Page<Club> searchClubsByTag(String tag, Pageable pageable) {

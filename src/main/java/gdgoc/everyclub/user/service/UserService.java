@@ -38,13 +38,18 @@ public class UserService {
                 .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
     }
 
+    public boolean existsById(Long id) {
+        return userRepository.existsById(id);
+    }
+
     @Transactional
     public void updateUser(Long id, UserUpdateRequest request) {
         if (request == null) {
             throw new NullPointerException("UserUpdateRequest cannot be null");
         }
         User user = getUserById(id);
-        user.update(request.name());
+        user.updateProfile(request.nickname(), request.department(),
+                request.studentId(), request.phoneNumber(), request.bio());
     }
 
     @Transactional

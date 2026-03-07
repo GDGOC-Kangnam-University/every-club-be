@@ -35,7 +35,10 @@ class UserServiceTest {
 
     @BeforeEach
     void setUp() {
-        testUser = new User("Test User", "test@example.com");
+        testUser = User.builder()
+                .email("test@example.com")
+                .nickname("Test User")
+                .build();
         ReflectionTestUtils.setField(testUser, "id", 1L);
     }
     @Mock
@@ -48,7 +51,7 @@ class UserServiceTest {
     @DisplayName("유저 생성 요청 시 올바른 데이터로 저장을 시도한다")
     void createUser() {
         // given
-        UserCreateRequest request = new UserCreateRequest("John Doe", "john@example.com");
+        UserCreateRequest request = new UserCreateRequest("john@example.com", "John Doe");
 
         given(userRepository.save(any(User.class))).willAnswer(invocation -> {
             User savedUser = invocation.getArgument(0);
@@ -67,7 +70,7 @@ class UserServiceTest {
         verify(userRepository).save(userCaptor.capture());
         
         User capturedUser = userCaptor.getValue();
-        assertThat(capturedUser.getName()).isEqualTo(request.name());
+        assertThat(capturedUser.getName()).isEqualTo(request.nickname());
         assertThat(capturedUser.getEmail()).isEqualTo(request.email());
         // 기본 권한은 GUEST
         assertThat(capturedUser.getRole()).isEqualTo(UserRole.GUEST);
@@ -86,7 +89,7 @@ class UserServiceTest {
     void createUser_DuplicateEmail() {
         // given
         String duplicateEmail = "duplicate@example.com";
-        UserCreateRequest request = new UserCreateRequest("New User", duplicateEmail);
+        UserCreateRequest request = new UserCreateRequest(duplicateEmail, "New User");
 
         // Mocking behavior: suppose the repository throws an exception for duplicate keys
         given(userRepository.save(any(User.class)))
@@ -101,8 +104,8 @@ class UserServiceTest {
     @DisplayName("모든 유저를 조회한다")
     void getUsers() {
         // given
-        User user1 = new User("User1", "user1@example.com");
-        User user2 = new User("User2", "user2@example.com");
+        User user1 = User.builder().email("user1@example.com").nickname("User1").build();
+        User user2 = User.builder().email("user2@example.com").nickname("User2").build();
         given(userRepository.findAll()).willReturn(List.of(user1, user2));
 
         // when
@@ -146,7 +149,7 @@ class UserServiceTest {
     void updateUser() {
         // given
         Long userId = 1L;
-        UserUpdateRequest request = new UserUpdateRequest("John Smith");
+        UserUpdateRequest request = new UserUpdateRequest("John Smith", null, null, null, null);
 
         given(userRepository.findById(userId)).willReturn(Optional.of(testUser));
 
@@ -164,7 +167,7 @@ class UserServiceTest {
     void updateUser_NotFound() {
         // given
         Long userId = 999L;
-        UserUpdateRequest request = new UserUpdateRequest("John Smith");
+        UserUpdateRequest request = new UserUpdateRequest("John Smith", null, null, null, null);
         given(userRepository.findById(userId)).willReturn(Optional.empty());
 
         // when & then

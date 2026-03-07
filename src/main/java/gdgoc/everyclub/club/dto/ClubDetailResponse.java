@@ -22,6 +22,7 @@ public class ClubDetailResponse {
     private final String activityCycle;
     private final boolean hasFee;
     private final boolean isPublic;
+    private final boolean isLiked;
     private final int likeCount;
     private final List<String> tags;
     private final Long categoryId;
@@ -31,6 +32,10 @@ public class ClubDetailResponse {
     private final LocalDateTime updatedAt;
 
     public ClubDetailResponse(Club club) {
+        this(club, false, 0);
+    }
+
+    public ClubDetailResponse(Club club, boolean isLiked, int likeCount) {
         this.id = club.getId();
         this.slug = club.getSlug();
         this.name = club.getName();
@@ -44,7 +49,8 @@ public class ClubDetailResponse {
         this.activityCycle = club.getActivityCycle();
         this.hasFee = club.isHasFee();
         this.isPublic = club.isPublic();
-        this.likeCount = club.getLikeCount();
+        this.isLiked = isLiked;
+        this.likeCount = likeCount;
         this.tags = club.getTags();
         this.categoryId = club.getCategory() != null ? club.getCategory().getId() : null;
         this.categoryName = club.getCategory() != null ? club.getCategory().getName() : null;

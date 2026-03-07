@@ -6,6 +6,7 @@ import gdgoc.everyclub.club.domain.Club;
 import gdgoc.everyclub.club.domain.RecruitingStatus;
 import gdgoc.everyclub.club.dto.ClubCreateRequest;
 import gdgoc.everyclub.club.dto.ClubDetailResponse;
+import gdgoc.everyclub.club.dto.ClubSummaryResponse;
 import gdgoc.everyclub.club.dto.ClubUpdateRequest;
 import gdgoc.everyclub.club.service.ClubService;
 import gdgoc.everyclub.common.exception.LogicException;
@@ -88,7 +89,7 @@ class ClubControllerTest {
     @DisplayName("모든 동아리 조회 시 200 OK와 동아리 리스트를 반환한다")
     void getClubs() throws Exception {
         // given
-        User author = new User("Author", "author@example.com");
+        User author = User.builder().email("author@example.com").nickname("Author").build();
         Category category = new Category("Academic");
         Club club = Club.builder()
                 .name("Name")
@@ -102,7 +103,7 @@ class ClubControllerTest {
                 .build();
         ReflectionTestUtils.setField(club, "id", 1L);
 
-        given(clubService.getClubs(any(PageRequest.class))).willReturn(new PageImpl<>(List.of(club)));
+        given(clubService.getClubsWithLikeCounts(any(PageRequest.class))).willReturn(new PageImpl<>(List.of(new ClubSummaryResponse(club, 0))));
 
         // when & then
         mockMvc.perform(get("/clubs")
@@ -121,7 +122,7 @@ class ClubControllerTest {
     void getClub() throws Exception {
         // given
         Long clubId = 1L;
-        User author = new User("Author", "author@example.com");
+        User author = User.builder().email("author@example.com").nickname("Author").build();
         Category category = new Category("Academic");
         Club club = Club.builder()
                 .name("Name")
@@ -136,7 +137,7 @@ class ClubControllerTest {
                 .build();
         ReflectionTestUtils.setField(club, "id", clubId);
 
-        given(clubService.getPublicClubById(clubId)).willReturn(new ClubDetailResponse(club));
+        given(clubService.getPublicClubById(clubId, null)).willReturn(new ClubDetailResponse(club));
 
         // when & then
         mockMvc.perform(get("/clubs/{id}", clubId))
@@ -211,6 +212,26 @@ class ClubControllerTest {
                 .andExpect(jsonPath("$.status").value("SUCCESS"));
 
         verify(clubService).deleteClub(clubId);
+    }
+
+    @Test
+    @DisplayName("좋아요 토글 시 200 OK와 변경된 좋아요 상태를 반환한다")
+    void toggleLike() throws Exception {
+        // given
+        Long clubId = 1L;
+        Long userId = 1L; // Mocked user ID
+        given(clubService.validateUserExists(userId)).willReturn(true);
+        given(clubService.toggleLike(eq(clubId), eq(userId))).willReturn(true);
+
+        // when & then
+        mockMvc.perform(post("/clubs/{id}/like", clubId)
+                        .header("X-User-Id", userId)) // Assume user ID passed via header for now as a mock
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.data").value(true));
+
+        verify(clubService).toggleLike(eq(clubId), eq(userId));
     }
 
     private ClubCreateRequest createCreateRequest(String name, String slug) {

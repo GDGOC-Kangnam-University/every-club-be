@@ -10,7 +10,9 @@ import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Table(name = "club", indexes = {
@@ -68,9 +70,9 @@ public class Club {
     @Builder.Default
     private boolean isPublic = false;
 
-    @Column(nullable = false)
     @Builder.Default
-    private int likeCount = 0;
+    @ManyToMany(mappedBy = "likedClubs")
+    private Set<User> likedByUsers = new LinkedHashSet<>();
 
     @Convert(converter = TagListConverter.class)
     @Column(columnDefinition = "TEXT")
@@ -109,7 +111,7 @@ public class Club {
         this.recruitingStatus = RecruitingStatus.OPEN;
         this.hasFee = false;
         this.isPublic = false;
-        this.likeCount = 0;
+        this.likedByUsers = new LinkedHashSet<>();
         this.tags = new ArrayList<>();
     }
 

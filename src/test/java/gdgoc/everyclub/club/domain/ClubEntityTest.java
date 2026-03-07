@@ -15,7 +15,7 @@ class ClubEntityTest {
     @DisplayName("동아리 생성 시 추가된 필드들이 올바르게 설정된다")
     void createClubWithNewFields() {
         // given
-        User author = new User("John Doe", "john@example.com");
+        User author = User.builder().email("john@example.com").nickname("John Doe").build();
         Category category = new Category("Academic");
         String slug = "gdg-on-campus";
         String summary = "GDG on Campus club";
@@ -60,7 +60,7 @@ class ClubEntityTest {
         assertThat(club.getActivityCycle()).isEqualTo(activityCycle);
         assertThat(club.isHasFee()).isEqualTo(hasFee);
         assertThat(club.isPublic()).isEqualTo(isPublic);
-        assertThat(club.getLikeCount()).isEqualTo(0);
+        assertThat(club.getLikedByUsers()).isEmpty();
     }
 
     @Test
@@ -89,7 +89,7 @@ class ClubEntityTest {
     @DisplayName("생성자를 통해 동아리를 생성한다")
     void createClubWithConstructor() {
         // given
-        User author = new User("John Doe", "john@example.com");
+        User author = User.builder().email("john@example.com").nickname("John Doe").build();
         Category category = new Category("Academic");
         String slug = "slug";
         String name = "Club Name";
@@ -107,14 +107,14 @@ class ClubEntityTest {
         assertThat(club.getRecruitingStatus()).isEqualTo(RecruitingStatus.OPEN);
         assertThat(club.isHasFee()).isFalse();
         assertThat(club.isPublic()).isFalse();
-        assertThat(club.getLikeCount()).isEqualTo(0);
+        assertThat(club.getLikedByUsers()).isEmpty();
     }
 
     @Test
     @DisplayName("동아리 생성 시 이름이 null이면 IllegalArgumentException이 발생한다")
     void createClub_NullName() {
         // given
-        User author = new User("John Doe", "john@example.com");
+        User author = User.builder().email("john@example.com").nickname("John Doe").build();
         Category category = new Category("Academic");
 
         // when & then
@@ -127,7 +127,7 @@ class ClubEntityTest {
     @DisplayName("동아리 생성 시 이름이 공백이면 IllegalArgumentException이 발생한다")
     void createClub_BlankName() {
         // given
-        User author = new User("John Doe", "john@example.com");
+        User author = User.builder().email("john@example.com").nickname("John Doe").build();
         Category category = new Category("Academic");
 
         // when & then

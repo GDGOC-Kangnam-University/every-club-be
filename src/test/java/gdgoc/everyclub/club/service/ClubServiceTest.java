@@ -55,7 +55,7 @@ class ClubServiceTest {
 
     @BeforeEach
     void setUp() {
-        author = new User("Author", "author@example.com");
+        author = User.builder().email("author@example.com").nickname("Author").build();
         ReflectionTestUtils.setField(author, "id", 1L);
 
         category = new Category("Academic");
@@ -367,5 +367,65 @@ class ClubServiceTest {
                 .hasFee(false)
                 .isPublic(true)
                 .build();
+    }
+
+    @Test
+    @DisplayName("좋아요를 누르지 않은 동아리에 좋아요를 누륾면 좋아요가 추가된다")
+    void toggleLike_Add() {
+        // given
+        given(clubRepository.existsById(1L)).willReturn(true);
+        given(userService.existsById(2L)).willReturn(true);
+        given(clubRepository.addLikeAtomic(2L, 1L)).willReturn(1);
+
+        // when
+        boolean isLiked = clubService.toggleLike(1L, 2L);
+
+        // then
+        assertThat(isLiked).isTrue();
+        verify(clubRepository).addLikeAtomic(2L, 1L);
+    }
+
+    @Test
+    @DisplayName("이미 좋아요를 누른 동아리에 좋아요를 누륾면 좋아요가 취소된다")
+    void toggleLike_Remove() {
+        // given
+        given(clubRepository.existsById(1L)).willReturn(true);
+        given(userService.existsById(2L)).willReturn(true);
+        given(clubRepository.addLikeAtomic(2L, 1L)).willReturn(0);
+        given(clubRepository.removeLikeAtomic(2L, 1L)).willReturn(1);
+
+        // when
+        boolean isLiked = clubService.toggleLike(1L, 2L);
+
+        // then
+        assertThat(isLiked).isFalse();
+        verify(clubRepository).removeLikeAtomic(2L, 1L);
+    }
+
+    @Test
+    @DisplayName("좋아요 토글 시 존재하지 않는 동아리 ID면 예외가 발생한다")
+    void toggleLike_ClubNotFound() {
+        // given
+        given(clubRepository.existsById(1L)).willReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> clubService.toggleLike(1L, 2L))
+                .isInstanceOf(LogicException.class)
+                .extracting("errorCode")
+                .isEqualTo(ResourceErrorCode.RESOURCE_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("좋아요 토글 시 존재하지 않는 사용자 ID면 예외가 발생한다")
+    void toggleLike_UserNotFound() {
+        // given
+        given(clubRepository.existsById(1L)).willReturn(true);
+        given(userService.existsById(2L)).willReturn(false);
+
+        // when & then
+        assertThatThrownBy(() -> clubService.toggleLike(1L, 2L))
+                .isInstanceOf(LogicException.class)
+                .extracting("errorCode")
+                .isEqualTo(ResourceErrorCode.RESOURCE_NOT_FOUND);
     }
 }
