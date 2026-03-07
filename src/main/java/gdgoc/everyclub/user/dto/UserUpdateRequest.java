@@ -1,9 +1,10 @@
 package gdgoc.everyclub.user.dto;
 
-import jakarta.validation.constraints.NotBlank;
-
 public record UserUpdateRequest(
-        @NotBlank(message = "Name must not be blank")
-        String name
+        String nickname,
+        String department,
+        String studentId,
+        String phoneNumber,
+        String bio
 ) {
 }

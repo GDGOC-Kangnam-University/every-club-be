@@ -109,8 +109,15 @@ class JwtProviderTest {
         void validateToken_tamperedToken_returnsFalse() {
             Authentication authentication = createAuthentication(1L, "ROLE_USER");
             String token = jwtProvider.generateToken(authentication).getAccessToken();
-            // 토큰 마지막 문자를 변경하여 서명 위조
-            String tampered = token.substring(0, token.length() - 1) + (token.endsWith("A") ? "B" : "A");
+            // 토큰 payload 부분을 변경하여 위조 (header.payload.signature 구조)
+            String[] parts = token.split("\\.");
+            if (parts.length >= 2) {
+                // payload 부분의 첫 문자 변경
+                char firstChar = parts[1].charAt(0);
+                char newChar = firstChar == 'A' ? 'B' : 'A';
+                parts[1] = newChar + parts[1].substring(1);
+            }
+            String tampered = String.join(".", parts);
 
             assertThat(jwtProvider.validateToken(tampered)).isFalse();
         }

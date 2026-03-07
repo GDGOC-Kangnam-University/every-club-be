@@ -55,7 +55,7 @@ class ClubServiceTest {
 
     @BeforeEach
     void setUp() {
-        author = new User("Author", "author@example.com");
+        author = User.builder().email("author@example.com").nickname("Author").build();
         ReflectionTestUtils.setField(author, "id", 1L);
 
         category = new Category("Academic");

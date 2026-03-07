@@ -13,7 +13,7 @@ class ClubTest {
     @DisplayName("동아리 수정 시 이름과 설명이 변경된다")
     void updateClub() {
         // given
-        User author = new User("John Doe", "john@example.com");
+        User author = User.builder().email("john@example.com").nickname("John Doe").build();
         Category category = new Category("Academic");
         Club club = Club.builder()
                 .name("Old Name")
@@ -40,7 +40,7 @@ class ClubTest {
     @DisplayName("동아리 생성 시 이름이 null이면 IllegalArgumentException이 발생한다")
     void createClub_NullName() {
         // given
-        User author = new User("John Doe", "john@example.com");
+        User author = User.builder().email("john@example.com").nickname("John Doe").build();
         Category category = new Category("Academic");
 
         // when & then
@@ -53,7 +53,7 @@ class ClubTest {
     @DisplayName("동아리 수정 시 이름을 null로 변경할 수 있다 (DB 저장 시점에 실패)")
     void update_NullName() {
         // given
-        User author = new User("John Doe", "john@example.com");
+        User author = User.builder().email("john@example.com").nickname("John Doe").build();
         Category category = new Category("Academic");
         Club club = Club.builder()
                 .name("Name")

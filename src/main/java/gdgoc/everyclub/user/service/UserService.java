@@ -48,7 +48,8 @@ public class UserService {
             throw new NullPointerException("UserUpdateRequest cannot be null");
         }
         User user = getUserById(id);
-        user.update(request.name());
+        user.updateProfile(request.nickname(), request.department(),
+                request.studentId(), request.phoneNumber(), request.bio());
     }
 
     @Transactional

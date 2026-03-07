@@ -32,7 +32,7 @@ class ClubRepositoryTest {
     @DisplayName("slug로 동아리 존재 여부를 확인한다")
     void existsBySlug() {
         // given
-        User author = userRepository.save(new User("John Doe", "john@example.com"));
+        User author = userRepository.save(User.builder().email("john@example.com").nickname("John Doe").build());
         Category category = categoryRepository.save(new Category("Academic"));
         clubRepository.save(Club.builder()
                 .name("Name")
@@ -58,7 +58,7 @@ class ClubRepositoryTest {
     @DisplayName("공개된 동아리만 페이징 조회한다")
     void findAllByIsPublicTrue() {
         // given
-        User author = userRepository.save(new User("John Doe", "john@example.com"));
+        User author = userRepository.save(User.builder().email("john@example.com").nickname("John Doe").build());
         Category category = categoryRepository.save(new Category("Academic"));
         clubRepository.save(createClub(author, category, "slug1", true));
         clubRepository.save(createClub(author, category, "slug2", false));
