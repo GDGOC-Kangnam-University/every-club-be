@@ -11,9 +11,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Optional;
-import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
@@ -25,7 +25,7 @@ public class OtpService {
     private final EmailVerificationRepository emailVerificationRepository;
     private final UserRepository userRepository;
     private final OtpEmailService otpEmailService;
-    private final Random random = new Random();
+    private final SecureRandom secureRandom = new SecureRandom();
 
     /**
      * Generates an OTP using the configured character set and length.
@@ -35,7 +35,7 @@ public class OtpService {
         String characterSet = otpProperties.getCharacterSet();
 
         for (int i = 0; i < otpProperties.getCodeLength(); i++) {
-            int index = random.nextInt(characterSet.length());
+            int index = secureRandom.nextInt(characterSet.length());
             otp.append(characterSet.charAt(index));
         }
 
