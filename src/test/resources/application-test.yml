@@ -10,6 +10,11 @@ s3:
   bucket: everyclub
   expiration-minutes: 5
 
+otp:
+  code-length: 64
+  expiration-minutes: 2
+  character-set: ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
+
 spring:
   datasource:
     url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
