@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
 import java.util.Optional;
 
 
@@ -58,4 +59,52 @@ public interface ClubRepository extends JpaRepository<Club, Long> {
     @Query(value = "DELETE FROM club_likes WHERE user_id = :userId AND club_id = :clubId",
            nativeQuery = true)
     int removeLikeAtomic(@Param("userId") Long userId, @Param("clubId") Long clubId);
+
+    // ── Name search: ILIKE path (keyword length 1~3) ──────────────────────────
+
+    @Query(value = """
+            SELECT id FROM club
+            WHERE is_public = true AND deleted_at IS NULL
+              AND name ILIKE '%' || :keyword || '%'
+            ORDER BY name
+            LIMIT :limit OFFSET :offset
+            """, nativeQuery = true)
+    List<Long> findIdsByNameIlike(
+            @Param("keyword") String keyword,
+            @Param("limit") int limit,
+            @Param("offset") int offset);
+
+    @Query(value = """
+            SELECT COUNT(*) FROM club
+            WHERE is_public = true AND deleted_at IS NULL
+              AND name ILIKE '%' || :keyword || '%'
+            """, nativeQuery = true)
+    long countByNameIlike(@Param("keyword") String keyword);
+
+    // ── Name search: pg_trgm path (keyword length 4+) ─────────────────────────
+
+    @Query(value = """
+            SELECT id FROM club
+            WHERE is_public = true AND deleted_at IS NULL
+              AND :keyword <% name
+            ORDER BY word_similarity(:keyword, name) DESC
+            LIMIT :limit OFFSET :offset
+            """, nativeQuery = true)
+    List<Long> findIdsByNameTrgm(
+            @Param("keyword") String keyword,
+            @Param("limit") int limit,
+            @Param("offset") int offset);
+
+    @Query(value = """
+            SELECT COUNT(*) FROM club
+            WHERE is_public = true AND deleted_at IS NULL
+              AND :keyword <% name
+            """, nativeQuery = true)
+    long countByNameTrgm(@Param("keyword") String keyword);
+
+    // ── Batch-fetch entities with associations (used after ID-only queries) ───
+
+    @EntityGraph(attributePaths = {"author", "category"})
+    @Query("SELECT c FROM Club c WHERE c.id IN :ids")
+    List<Club> findAllByIdInWithGraph(@Param("ids") List<Long> ids);
 }

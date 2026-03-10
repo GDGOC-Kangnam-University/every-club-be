@@ -8,13 +8,19 @@ import gdgoc.everyclub.club.repository.ClubRepository;
 import gdgoc.everyclub.common.exception.BusinessErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
+import gdgoc.everyclub.common.exception.ValidationErrorCode;
 import gdgoc.everyclub.user.domain.User;
 import gdgoc.everyclub.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -172,5 +178,62 @@ public class ClubService {
             throw new IllegalArgumentException("Pageable cannot be null");
         }
         return clubRepository.findByTagsContaining(tag, pageable);
+    }
+
+    /**
+     * 동아리 이름 검색.
+     *
+     * <p>검색어 길이에 따라 쿼리 전략을 분기한다.
+     * <ul>
+     *   <li>공백만 입력 → 거부 (400)</li>
+     *   <li>1~3자 → {@code ILIKE '%keyword%'}<br>
+     *       trigram은 3글자부터 추출되므로 1~2자는 GIN 인덱스 효과가 없고
+     *       3자도 trigram 1개뿐이라 사실상 full scan에 가깝다. 데이터 규모가
+     *       커지면 최소 글자 수 정책 도입을 검토해야 한다.</li>
+     *   <li>4자 이상 → {@code pg_trgm <%} 연산자 (GIN 인덱스 활용, 유사도 내림차순)<br>
+     *       결과가 너무 적을 경우 DB의 {@code pg_trgm.word_similarity_threshold}
+     *       (기본값 0.6)를 낮추는 것을 검토한다.</li>
+     * </ul>
+     *
+     * <p>N+1 방지를 위해 native 쿼리로 ID만 조회한 뒤 {@code @EntityGraph}로
+     * 엔티티를 배치 페치하는 2단계 패턴을 사용한다. {@code IN (:ids)} 쿼리는
+     * 반환 순서를 보장하지 않으므로, {@code Map<Long, Club>}을 경유해
+     * 1차 쿼리의 순서(유사도 순)를 명시적으로 복원한다.
+     */
+    public Page<ClubSummaryResponse> searchClubsByName(String keyword, Pageable pageable) {
+        if (keyword == null || keyword.isBlank()) {
+            throw new LogicException(ValidationErrorCode.INVALID_INPUT);
+        }
+
+        String trimmed = keyword.strip();
+        int limit = pageable.getPageSize();
+        int offset = (int) pageable.getOffset();
+
+        List<Long> ids;
+        long total;
+
+        if (trimmed.length() <= 3) {
+            ids = clubRepository.findIdsByNameIlike(trimmed, limit, offset);
+            total = clubRepository.countByNameIlike(trimmed);
+        } else {
+            ids = clubRepository.findIdsByNameTrgm(trimmed, limit, offset);
+            total = clubRepository.countByNameTrgm(trimmed);
+        }
+
+        if (ids.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, 0);
+        }
+
+        // 2단계 페치: IN (:ids)는 순서 비보장 → Map 경유로 1차 쿼리 순서 복원
+        Map<Long, Club> clubById = clubRepository.findAllByIdInWithGraph(ids)
+                .stream()
+                .collect(Collectors.toMap(Club::getId, c -> c));
+
+        List<ClubSummaryResponse> content = ids.stream()
+                .map(clubById::get)
+                .map(ClubSummaryResponse::new)
+                .toList();
+
+        return new PageImpl<>(content, pageable, total);
     }
 }

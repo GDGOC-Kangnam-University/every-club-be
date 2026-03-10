@@ -7,6 +7,7 @@ import gdgoc.everyclub.common.ApiResponse;
 import gdgoc.everyclub.common.exception.AuthErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
+import gdgoc.everyclub.common.exception.ValidationErrorCode;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -43,12 +44,18 @@ public class ClubController {
     }
 
     @GetMapping("/search")
-    public ApiResponse<Page<ClubSummaryResponse>> searchClubsByTag(
-            @RequestParam String tag,
+    public ApiResponse<Page<ClubSummaryResponse>> searchClubs(
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String tag,
             Pageable pageable) {
-        Page<ClubSummaryResponse> responses = clubService.searchClubsByTag(tag, pageable)
-                .map(ClubSummaryResponse::new);
-        return ApiResponse.success(responses);
+        if (name != null) {
+            return ApiResponse.success(clubService.searchClubsByName(name, pageable));
+        }
+        if (tag != null) {
+            return ApiResponse.success(
+                    clubService.searchClubsByTag(tag, pageable).map(ClubSummaryResponse::new));
+        }
+        throw new LogicException(ValidationErrorCode.INVALID_INPUT);
     }
 
     @PutMapping("/{id}")
