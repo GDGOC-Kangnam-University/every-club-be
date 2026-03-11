@@ -110,7 +110,7 @@ public class Club {
 
     public void update(String name, String summary, String description,
                        String logoUrl, String bannerUrl, String joinFormUrl,
-                       RecruitingStatus recruitingStatus, String department,
+                       RecruitingStatus recruitingStatus, Major major,
                        String activityCycle, boolean hasFee, boolean isPublic,
                        String tags) {
         this.name = name;
