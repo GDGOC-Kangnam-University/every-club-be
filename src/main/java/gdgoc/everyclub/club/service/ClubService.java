@@ -43,11 +43,7 @@ public class ClubService {
         Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
 
-        Major major = null;
-        if (request.majorId() != null) {
-            major = majorRepository.findById(request.majorId())
-                    .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
-        }
+        Major major = findMajorById(request.majorId());
 
         Club club = Club.builder()
                 .name(request.name())
@@ -98,11 +94,7 @@ public class ClubService {
         }
         Club club = getClubById(id);
 
-        Major major = null;
-        if (request.majorId() != null) {
-            major = majorRepository.findById(request.majorId())
-                    .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
-        }
+        Major major = findMajorById(request.majorId());
 
         club.update(
                 request.name(),
@@ -137,5 +129,13 @@ public class ClubService {
             throw new IllegalArgumentException("Pageable cannot be null");
         }
         return clubRepository.findByTagsContaining(tag, pageable);
+    }
+    private Major findMajorById(Long majorId) {
+        if (majorId == null) {
+            return null;
+        }
+
+        return majorRepository.findById(majorId)
+                .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
     }
 }
