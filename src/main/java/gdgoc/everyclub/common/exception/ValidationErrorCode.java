@@ -18,7 +18,10 @@ public enum ValidationErrorCode implements ErrorCode {
             "허용되지 않은 이메일 도메인입니다."),
 
     INVALID_URL_FORMAT(HttpStatus.BAD_REQUEST, "VALIDATION",
-            "URL 형식이 올바르지 않습니다.");
+            "URL 형식이 올바르지 않습니다."),
+
+    MAJOR_REQUIRED_FOR_DEPARTMENT_CLUB(HttpStatus.BAD_REQUEST, "VALIDATION",
+            "학과동아리의 경우 소속 학과(majorId)는 필수입니다.");
 
     private final HttpStatus status;
     private final String type;
