@@ -1,5 +1,7 @@
 package gdgoc.everyclub.club.domain;
 
+import gdgoc.everyclub.college.domain.College;
+import gdgoc.everyclub.college.domain.Major;
 import gdgoc.everyclub.user.domain.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,7 +26,7 @@ class ClubEntityTest {
         String bannerUrl = "https://example.com/banner.png";
         String joinFormUrl = "https://example.com/join";
         RecruitingStatus recruitingStatus = RecruitingStatus.OPEN;
-        String department = "Computer Science";
+        Major major = new Major("컴퓨터공학부", new College("공과대학"));
         String activityCycle = "WEEKLY";
         boolean hasFee = true;
         boolean isPublic = true;
@@ -41,7 +43,7 @@ class ClubEntityTest {
                 .bannerUrl(bannerUrl)
                 .joinFormUrl(joinFormUrl)
                 .recruitingStatus(recruitingStatus)
-                .department(department)
+                .major(major)
                 .activityCycle(activityCycle)
                 .hasFee(hasFee)
                 .isPublic(isPublic)
@@ -56,7 +58,7 @@ class ClubEntityTest {
         assertThat(club.getBannerUrl()).isEqualTo(bannerUrl);
         assertThat(club.getJoinFormUrl()).isEqualTo(joinFormUrl);
         assertThat(club.getRecruitingStatus()).isEqualTo(recruitingStatus);
-        assertThat(club.getDepartment()).isEqualTo(department);
+        assertThat(club.getMajor()).isEqualTo(major);
         assertThat(club.getActivityCycle()).isEqualTo(activityCycle);
         assertThat(club.isHasFee()).isEqualTo(hasFee);
         assertThat(club.isPublic()).isEqualTo(isPublic);

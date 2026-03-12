@@ -5,6 +5,8 @@ import gdgoc.everyclub.club.domain.Club;
 import gdgoc.everyclub.club.dto.*;
 import gdgoc.everyclub.club.repository.CategoryRepository;
 import gdgoc.everyclub.club.repository.ClubRepository;
+import gdgoc.everyclub.college.domain.Major;
+import gdgoc.everyclub.college.repository.MajorRepository;
 import gdgoc.everyclub.common.exception.BusinessErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
@@ -28,6 +30,7 @@ import java.util.stream.Collectors;
 public class ClubService {
     private final ClubRepository clubRepository;
     private final CategoryRepository categoryRepository;
+    private final MajorRepository majorRepository;
     private final UserService userService;
 
     @Transactional
@@ -44,6 +47,8 @@ public class ClubService {
         Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
 
+        Major major = findMajorById(request.majorId());
+
         Club club = Club.builder()
                 .name(request.name())
                 .author(author)
@@ -55,7 +60,7 @@ public class ClubService {
                 .bannerUrl(request.bannerUrl())
                 .joinFormUrl(request.joinFormUrl())
                 .recruitingStatus(request.recruitingStatus())
-                .department(request.department())
+                .major(major)
                 .activityCycle(request.activityCycle())
                 .hasFee(request.hasFee())
                 .isPublic(request.isPublic())
@@ -111,6 +116,9 @@ public class ClubService {
             throw new NullPointerException("ClubUpdateRequest cannot be null");
         }
         Club club = getClubById(id);
+
+        Major major = findMajorById(request.majorId());
+
         club.update(
                 request.name(),
                 request.summary(),
@@ -119,7 +127,7 @@ public class ClubService {
                 request.bannerUrl(),
                 request.joinFormUrl(),
                 request.recruitingStatus(),
-                request.department(),
+                major,
                 request.activityCycle(),
                 request.hasFee(),
                 request.isPublic(),
@@ -178,6 +186,14 @@ public class ClubService {
             throw new IllegalArgumentException("Pageable cannot be null");
         }
         return clubRepository.findByTagsContaining(tag, pageable);
+    }
+    private Major findMajorById(Long majorId) {
+        if (majorId == null) {
+            return null;
+        }
+
+        return majorRepository.findById(majorId)
+                .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
     }
 
     /**

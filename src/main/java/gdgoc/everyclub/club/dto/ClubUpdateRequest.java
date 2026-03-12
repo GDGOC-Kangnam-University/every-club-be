@@ -32,8 +32,7 @@ public record ClubUpdateRequest(
         @NotNull(message = "Recruiting status must not be null")
         RecruitingStatus recruitingStatus,
 
-        @Size(max = 50)
-        String department,
+        Long majorId,
 
         @Size(max = 50)
         String activityCycle,
