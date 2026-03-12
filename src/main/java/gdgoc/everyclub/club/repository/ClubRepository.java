@@ -4,8 +4,10 @@ import gdgoc.everyclub.club.domain.Club;
 import gdgoc.everyclub.club.dto.ClubSummaryResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -14,7 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 
-public interface ClubRepository extends JpaRepository<Club, Long> {
+public interface ClubRepository extends JpaRepository<Club, Long>, JpaSpecificationExecutor<Club> {
     @EntityGraph(attributePaths = "author")
     Page<Club> findAll(Pageable pageable);
 
@@ -107,4 +109,13 @@ public interface ClubRepository extends JpaRepository<Club, Long> {
     @EntityGraph(attributePaths = {"author", "category"})
     @Query("SELECT c FROM Club c WHERE c.id IN :ids")
     List<Club> findAllByIdInWithGraph(@Param("ids") List<Long> ids);
+
+    // ── Filter: like count batch (used after Specification page query) ────────
+
+    /**
+     * 주어진 ID 목록에 대한 찜 수를 배치로 조회한다.
+     * 반환값: [clubId(Long), likeCount(Long)] 형태의 Object[] 리스트.
+     */
+    @Query("SELECT c.id, COUNT(u) FROM Club c LEFT JOIN c.likedByUsers u WHERE c.id IN :ids GROUP BY c.id")
+    List<Object[]> findLikeCountsByIds(@Param("ids") List<Long> ids);
 }

@@ -5,6 +5,7 @@ import gdgoc.everyclub.club.domain.Club;
 import gdgoc.everyclub.club.dto.*;
 import gdgoc.everyclub.club.repository.CategoryRepository;
 import gdgoc.everyclub.club.repository.ClubRepository;
+import gdgoc.everyclub.club.repository.ClubSpecification;
 import gdgoc.everyclub.college.domain.Major;
 import gdgoc.everyclub.college.repository.MajorRepository;
 import gdgoc.everyclub.common.exception.BusinessErrorCode;
@@ -17,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -173,6 +175,54 @@ public class ClubService {
             clubRepository.removeLikeAtomic(userId, clubId);
             return false;
         }
+    }
+
+    /**
+     * 동아리 필터 조회.
+     *
+     * <p>필터 조건이 모두 비어 있으면 기존 {@link #getClubsWithLikeCounts(Pageable)}로 위임한다.
+     *
+     * <p>조회 전략 (2단계 + like count 배치):
+     * <ol>
+     *   <li>Specification으로 조건에 맞는 {@link Club} 페이지 조회</li>
+     *   <li>{@code findAllByIdInWithGraph}로 author/category EntityGraph 배치 페치 (N+1 방지)</li>
+     *   <li>{@code findLikeCountsByIds}로 like count 배치 조회</li>
+     * </ol>
+     */
+    public Page<ClubSummaryResponse> filterClubs(ClubFilterRequest filter, Pageable pageable) {
+        if (filter.isEmpty()) {
+            return getClubsWithLikeCounts(pageable);
+        }
+
+        Specification<Club> spec = Specification.where(ClubSpecification.isPublic())
+                .and(ClubSpecification.hasCategories(filter.categoryIds()))
+                .and(ClubSpecification.hasCollege(filter.collegeId()))
+                .and(ClubSpecification.hasFee(filter.hasFee()))
+                .and(ClubSpecification.hasActivity(filter.hasActivity()));
+
+        // 1단계: 조건 필터링 (ID + total count)
+        Page<Club> page = clubRepository.findAll(spec, pageable);
+        List<Long> ids = page.map(Club::getId).toList();
+        if (ids.isEmpty()) {
+            return page.map(club -> new ClubSummaryResponse(club, 0));
+        }
+
+        // 2단계: author, category EntityGraph 배치 페치
+        Map<Long, Club> clubById = clubRepository.findAllByIdInWithGraph(ids).stream()
+                .collect(Collectors.toMap(Club::getId, c -> c));
+
+        // 3단계: like count 배치 조회
+        Map<Long, Integer> likeCountById = clubRepository.findLikeCountsByIds(ids).stream()
+                .collect(Collectors.toMap(
+                        arr -> (Long) arr[0],
+                        arr -> ((Long) arr[1]).intValue()
+                ));
+
+        List<ClubSummaryResponse> content = ids.stream()
+                .map(id -> new ClubSummaryResponse(clubById.get(id), likeCountById.getOrDefault(id, 0)))
+                .toList();
+
+        return new PageImpl<>(content, pageable, page.getTotalElements());
     }
 
     public Page<Club> searchClubsByTag(String tag, Pageable pageable) {
