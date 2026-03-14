@@ -16,6 +16,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import java.io.IOException;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -64,19 +65,19 @@ class SmtpOtpEmailServiceTest {
     }
 
     @Test
-    @DisplayName("SmtpOtpEmailService throws RuntimeException on template load failure")
+    @DisplayName("SmtpOtpEmailService throws OtpEmailException on template load failure")
     void throwsOnTemplateLoadFailure() throws IOException {
         // given
         when(templateLoader.loadTemplate("otp-email.txt")).thenThrow(new IOException("Template not found"));
 
         // when/then
         assertThatThrownBy(() -> service.sendOtpEmail("test@example.com", "123456"))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(OtpEmailException.class)
                 .hasMessageContaining("Failed to send OTP email");
     }
 
     @Test
-    @DisplayName("SmtpOtpEmailService throws RuntimeException on mail sender failure")
+    @DisplayName("SmtpOtpEmailService throws OtpEmailException on mail sender failure")
     void throwsOnMailSenderFailure() throws Exception {
         // given
         String template = "Your code is {otp}";
@@ -85,7 +86,47 @@ class SmtpOtpEmailServiceTest {
 
         // when/then
         assertThatThrownBy(() -> service.sendOtpEmail("test@example.com", "123456"))
-                .isInstanceOf(RuntimeException.class)
+                .isInstanceOf(OtpEmailException.class)
                 .hasMessageContaining("Failed to send OTP email");
+    }
+
+    @Test
+    @DisplayName("SmtpOtpEmailService maskEmail returns te***@example.com for test@example.com")
+    void maskEmailNormal() {
+        // when
+        String masked = service.maskEmail("test@example.com");
+
+        // then
+        assertThat(masked).isEqualTo("te***@example.com");
+    }
+
+    @Test
+    @DisplayName("SmtpOtpEmailService maskEmail returns ***@c.de for ab@c.de")
+    void maskEmailShort() {
+        // when
+        String masked = service.maskEmail("ab@c.de");
+
+        // then
+        assertThat(masked).isEqualTo("***@c.de");
+    }
+
+    @Test
+    @DisplayName("SmtpOtpEmailService maskEmail returns *** for null")
+    void maskEmailNull() {
+        // when
+        String masked = service.maskEmail(null);
+
+        // then
+        assertThat(masked).isEqualTo("***");
+    }
+
+    @Test
+    @DisplayName("SmtpOtpEmailService maskEmail returns *** for emails shorter than 4 chars")
+    void maskEmailVeryShort() {
+        // when
+        String masked = service.maskEmail("a@b");
+
+        // then
+        assertThat(masked).isEqualTo("***");
     }
 }

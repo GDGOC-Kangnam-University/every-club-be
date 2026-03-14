@@ -48,9 +48,12 @@ public class SmtpOtpEmailService implements OtpEmailService {
             String content = buildEmailContent(otpCode);
             sendEmail(to, "Your Verification Code", content);
             log.info("OTP email sent successfully to: {}", maskEmail(to));
-        } catch (Exception e) {
+        } catch (MessagingException | IOException e) {
             log.error("Failed to send OTP email to: {}", maskEmail(to), e);
-            throw new RuntimeException("Failed to send OTP email", e);
+            throw new OtpEmailException("Failed to send OTP email", e);
+        } catch (RuntimeException e) {
+            log.error("Failed to send OTP email to: {}", maskEmail(to), e);
+            throw new OtpEmailException("Failed to send OTP email", e);
         }
     }
 
@@ -66,13 +69,13 @@ public class SmtpOtpEmailService implements OtpEmailService {
         MimeMessage message = mailSender.createMimeMessage();
         message.setFrom(emailProperties.getFrom());
         message.setRecipients(MimeMessage.RecipientType.TO, to);
-        message.setSubject(subject);
-        message.setText(content);
+        message.setSubject(subject, "UTF-8");
+        message.setText(content, "UTF-8");
 
         mailSender.send(message);
     }
 
-    private String maskEmail(String email) {
+    String maskEmail(String email) {
         if (email == null || email.length() < 4) {
             return "***";
         }
