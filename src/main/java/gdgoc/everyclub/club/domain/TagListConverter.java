@@ -19,7 +19,8 @@ public class TagListConverter implements AttributeConverter<List<String>, String
         }
         String joined = attribute.stream()
                 .filter(tag -> tag != null && !tag.isBlank())
-                .map(String::trim)
+                .map(tag -> tag.replace(DELIMITER, "").trim())
+                .filter(tag -> !tag.isBlank())
                 .distinct()
                 .collect(Collectors.joining(DELIMITER));
 

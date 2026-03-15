@@ -22,11 +22,25 @@ public record ClubFilterRequest(
         List<Long> categoryIds,
         Long collegeId,
         Boolean hasFee,
-        Boolean hasActivity
+        Boolean hasActivity,
+        String name,
+        String tag
 ) {
     /** 모든 조건이 비어 있으면 필터 없음으로 판단한다. */
     public boolean isEmpty() {
         return (categoryIds == null || categoryIds.isEmpty())
+                && collegeId == null
+                && hasFee == null
+                && hasActivity == null
+                && (name == null || name.isBlank())
+                && (tag == null || tag.isBlank());
+    }
+
+    /** 이름 검색만 요청된 경우 (다른 필터 없음). trigram 최적화 경로에 사용. */
+    public boolean isNameOnly() {
+        return (name != null && !name.isBlank())
+                && (tag == null || tag.isBlank())
+                && (categoryIds == null || categoryIds.isEmpty())
                 && collegeId == null
                 && hasFee == null
                 && hasActivity == null;

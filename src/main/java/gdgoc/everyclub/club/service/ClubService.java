@@ -194,11 +194,18 @@ public class ClubService {
             return getClubsWithLikeCounts(pageable);
         }
 
+        // 이름 단독 검색 → trigram/ILIKE 최적화 경로
+        if (filter.isNameOnly()) {
+            return searchClubsByName(filter.name(), pageable);
+        }
+
         Specification<Club> spec = Specification.where(ClubSpecification.isPublic())
                 .and(ClubSpecification.hasCategories(filter.categoryIds()))
                 .and(ClubSpecification.hasCollege(filter.collegeId()))
                 .and(ClubSpecification.hasFee(filter.hasFee()))
-                .and(ClubSpecification.hasActivity(filter.hasActivity()));
+                .and(ClubSpecification.hasActivity(filter.hasActivity()))
+                .and(ClubSpecification.hasTag(filter.tag()))
+                .and(ClubSpecification.hasNameLike(filter.name()));
 
         // 1단계: 조건 필터링 (ID + total count)
         Page<Club> page = clubRepository.findAll(spec, pageable);
@@ -229,13 +236,17 @@ public class ClubService {
         if (tag == null || tag.isBlank()) {
             throw new IllegalArgumentException("Tag cannot be null or blank");
         }
-        if (tag.length() > 50) {
-            throw new IllegalArgumentException("Tag must be 50 characters or less");
+        String sanitized = tag.replace(";", "").strip();
+        if (sanitized.isBlank()) {
+            throw new IllegalArgumentException("Tag cannot be null or blank");
+        }
+        if (sanitized.length() > 30) {
+            throw new IllegalArgumentException("Tag must be 30 characters or less");
         }
         if (pageable == null) {
             throw new IllegalArgumentException("Pageable cannot be null");
         }
-        return clubRepository.findByTagsContaining(tag, pageable);
+        return clubRepository.findByTagsContaining(sanitized, pageable);
     }
     private Major findMajorById(Long majorId) {
         if (majorId == null) {

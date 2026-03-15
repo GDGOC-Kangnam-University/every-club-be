@@ -61,6 +61,36 @@ public class ClubSpecification {
     }
 
     /**
+     * 태그 필터 (대소문자 무시, exact match).
+     *
+     * <p>태그 저장 형식이 {@code %;tag;%}이므로 LIKE 패턴으로 정확히 일치하는 태그만 조회한다.
+     * 입력값의 {@code ;} 문자는 구분자와 충돌하므로 제거 후 처리한다.
+     *
+     * @param tag null 또는 빈 문자열이면 null 반환 (조건 무시)
+     */
+    public static Specification<Club> hasTag(String tag) {
+        if (tag == null || tag.isBlank()) return null;
+        String sanitized = tag.replace(";", "").strip().toLowerCase();
+        if (sanitized.isBlank()) return null;
+        return (root, query, cb) ->
+                cb.like(cb.lower(root.get("tags")), "%;" + sanitized + ";%");
+    }
+
+    /**
+     * 이름 LIKE 필터 (대소문자 무시, 부분 일치).
+     *
+     * <p>trigram 검색과 달리 Specification으로 조합 가능하나 GIN 인덱스를 활용하지 못한다.
+     * name + 다른 필터가 함께 쓰일 때만 사용하고, name 단독 검색은 {@code searchClubsByName}을 사용한다.
+     *
+     * @param name null 또는 빈 문자열이면 null 반환 (조건 무시)
+     */
+    public static Specification<Club> hasNameLike(String name) {
+        if (name == null || name.isBlank()) return null;
+        return (root, query, cb) ->
+                cb.like(cb.lower(root.get("name")), "%" + name.strip().toLowerCase() + "%");
+    }
+
+    /**
      * 정기 모임 유무 필터.
      *
      * <p>{@code activityCycle} 컬럼을 기준으로 해석한다.

@@ -48,9 +48,11 @@ public class ClubController {
             @RequestParam(required = false) Long collegeId,
             @RequestParam(required = false) Boolean hasFee,
             @RequestParam(required = false) Boolean hasActivity,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String tag,
             Pageable pageable
     ) {
-        ClubFilterRequest filter = new ClubFilterRequest(categoryIds, collegeId, hasFee, hasActivity);
+        ClubFilterRequest filter = new ClubFilterRequest(categoryIds, collegeId, hasFee, hasActivity, name, tag);
         return ApiResponse.success(clubService.filterClubs(filter, pageable));
     }
 
@@ -68,14 +70,11 @@ public class ClubController {
             @RequestParam(required = false) String name,
             @RequestParam(required = false) String tag,
             Pageable pageable) {
-        if (name != null) {
-            return ApiResponse.success(clubService.searchClubsByName(name, pageable));
+        if (name == null && tag == null) {
+            throw new LogicException(ValidationErrorCode.INVALID_INPUT);
         }
-        if (tag != null) {
-            return ApiResponse.success(
-                    clubService.searchClubsByTag(tag, pageable).map(ClubSummaryResponse::new));
-        }
-        throw new LogicException(ValidationErrorCode.INVALID_INPUT);
+        ClubFilterRequest filter = new ClubFilterRequest(null, null, null, null, name, tag);
+        return ApiResponse.success(clubService.filterClubs(filter, pageable));
     }
 
     @PutMapping("/{id}")

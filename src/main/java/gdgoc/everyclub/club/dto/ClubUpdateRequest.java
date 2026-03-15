@@ -42,6 +42,6 @@ public record ClubUpdateRequest(
         boolean isPublic,
 
         @Size(max = 20, message = "Maximum 20 tags allowed")
-        List<@Size(max = 50, message = "Each tag must be less than 50 characters") String> tags
+        List<@Size(max = 30, message = "Each tag must be less than 30 characters") String> tags
 ) {
 }
