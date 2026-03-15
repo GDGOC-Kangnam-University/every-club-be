@@ -199,13 +199,15 @@ public class ClubService {
             return searchClubsByName(filter.name(), pageable);
         }
 
-        Specification<Club> spec = Specification.where(ClubSpecification.isPublic())
-                .and(ClubSpecification.hasCategories(filter.categoryIds()))
-                .and(ClubSpecification.hasCollege(filter.collegeId()))
-                .and(ClubSpecification.hasFee(filter.hasFee()))
-                .and(ClubSpecification.hasActivity(filter.hasActivity()))
-                .and(ClubSpecification.hasTag(filter.tag()))
-                .and(ClubSpecification.hasNameLike(filter.name()));
+        Specification<Club> spec = Specification.allOf(
+                ClubSpecification.isPublic(),
+                ClubSpecification.hasCategories(filter.categoryIds()),
+                ClubSpecification.hasCollege(filter.collegeId()),
+                ClubSpecification.hasFee(filter.hasFee()),
+                ClubSpecification.hasActivity(filter.hasActivity()),
+                ClubSpecification.hasTag(filter.tag()),
+                ClubSpecification.hasNameLike(filter.name())
+        );
 
         // 1단계: 조건 필터링 (ID + total count)
         Page<Club> page = clubRepository.findAll(spec, pageable);
