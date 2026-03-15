@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import gdgoc.everyclub.auth.dto.SendOtpRequest;
 import gdgoc.everyclub.auth.dto.VerifyOtpRequest;
 import gdgoc.everyclub.auth.service.OtpService;
+import gdgoc.everyclub.auth.service.RateLimiterService;
 import gdgoc.everyclub.user.domain.User;
 import gdgoc.everyclub.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -42,6 +43,9 @@ class AuthControllerTest {
     private OtpService otpService;
 
     @MockBean
+    private RateLimiterService rateLimiterService;
+
+    @MockBean
     private UserRepository userRepository;
 
     private User testUser;
@@ -52,6 +56,10 @@ class AuthControllerTest {
                 .email("test@example.com")
                 .nickname("Test User")
                 .build();
+
+        // Default: allow all rate limiter requests
+        when(rateLimiterService.tryAcquire(anyString())).thenReturn(true);
+        doNothing().when(rateLimiterService).acquireOrThrow(anyString());
     }
 
     @Test
@@ -76,21 +84,21 @@ class AuthControllerTest {
     }
 
     @Test
-    @DisplayName("POST /send-otp returns error when user not found")
-    void sendOtp_UserNotFound_ReturnsError() throws Exception {
+    @DisplayName("POST /send-otp returns success regardless of user existence (prevents enumeration)")
+    void sendOtp_UserNotFound_ReturnsSuccess() throws Exception {
         // given
         SendOtpRequest request = new SendOtpRequest();
         request.setEmail("nonexistent@example.com");
 
         when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
 
-        // when/then
+        // when/then - Now returns success=true to prevent user enumeration
         mockMvc.perform(post("/api/v1/auth/send-otp")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.success").value(false));
+                .andExpect(jsonPath("$.data.success").value(true));
     }
 
     @Test
