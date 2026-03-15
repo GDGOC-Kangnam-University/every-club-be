@@ -4,10 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import gdgoc.everyclub.club.domain.Category;
 import gdgoc.everyclub.club.domain.Club;
 import gdgoc.everyclub.club.domain.RecruitingStatus;
-import gdgoc.everyclub.club.dto.ClubCreateRequest;
-import gdgoc.everyclub.club.dto.ClubDetailResponse;
-import gdgoc.everyclub.club.dto.ClubSummaryResponse;
-import gdgoc.everyclub.club.dto.ClubUpdateRequest;
+import gdgoc.everyclub.club.dto.*;
+import gdgoc.everyclub.common.exception.ValidationErrorCode;
 import gdgoc.everyclub.club.service.ClubService;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.security.jwt.JwtProvider;
@@ -28,8 +26,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
+
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -166,10 +164,125 @@ class ClubControllerTest {
         verify(clubService).updateClub(eq(clubId), any(ClubUpdateRequest.class));
     }
 
+    // ── GET /clubs (name/tag 통합 검색) ──────────────────────────────────────
+
     @Test
-    @DisplayName("태그로 동아리 검색 시 200 OK와 동아리 리스트를 반환한다")
-    void searchClubsByTag() throws Exception {
+    @DisplayName("GET /clubs?name=으로 이름 검색 시 200 OK를 반환한다")
+    void getClubs_WithName() throws Exception {
         // given
+        ClubSummaryResponse response = new ClubSummaryResponse(buildClub(), 0);
+        given(clubService.filterClubs(any(ClubFilterRequest.class), any()))
+                .willReturn(new PageImpl<>(List.of(response)));
+
+        // when & then
+        mockMvc.perform(get("/clubs")
+                        .param("name", "축구")
+                        .param("page", "0").param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.content").isArray());
+
+        verify(clubService).filterClubs(
+                argThat(f -> "축구".equals(f.name()) && f.tag() == null),
+                any());
+    }
+
+    @Test
+    @DisplayName("GET /clubs?tag=으로 태그 검색 시 200 OK를 반환한다")
+    void getClubs_WithTag() throws Exception {
+        // given
+        ClubSummaryResponse response = new ClubSummaryResponse(buildClub(), 0);
+        given(clubService.filterClubs(any(ClubFilterRequest.class), any()))
+                .willReturn(new PageImpl<>(List.of(response)));
+
+        // when & then
+        mockMvc.perform(get("/clubs")
+                        .param("tag", "운동")
+                        .param("page", "0").param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"));
+
+        verify(clubService).filterClubs(
+                argThat(f -> "운동".equals(f.tag()) && f.name() == null),
+                any());
+    }
+
+    @Test
+    @DisplayName("GET /clubs?name=&tag=으로 name+tag AND 검색 시 200 OK를 반환한다")
+    void getClubs_WithNameAndTag() throws Exception {
+        // given
+        given(clubService.filterClubs(any(ClubFilterRequest.class), any()))
+                .willReturn(new PageImpl<>(List.of()));
+
+        // when & then
+        mockMvc.perform(get("/clubs")
+                        .param("name", "축구")
+                        .param("tag", "운동")
+                        .param("page", "0").param("size", "10"))
+                .andExpect(status().isOk());
+
+        // then: name과 tag가 모두 filterClubs에 전달됨 (AND 조건)
+        verify(clubService).filterClubs(
+                argThat(f -> "축구".equals(f.name()) && "운동".equals(f.tag())),
+                any());
+    }
+
+    @Test
+    @DisplayName("GET /clubs?name=&categoryIds=으로 이름 검색 + 필터 조합 시 200 OK를 반환한다")
+    void getClubs_WithNameAndFilters() throws Exception {
+        // given
+        given(clubService.filterClubs(any(ClubFilterRequest.class), any()))
+                .willReturn(new PageImpl<>(List.of()));
+
+        // when & then
+        mockMvc.perform(get("/clubs")
+                        .param("name", "축구")
+                        .param("categoryIds", "1")
+                        .param("hasFee", "false")
+                        .param("page", "0").param("size", "10"))
+                .andExpect(status().isOk());
+
+        verify(clubService).filterClubs(
+                argThat(f -> "축구".equals(f.name())
+                        && f.categoryIds() != null && f.categoryIds().contains(1L)
+                        && Boolean.FALSE.equals(f.hasFee())),
+                any());
+    }
+
+    // ── GET /clubs/search ─────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("GET /clubs/search 파라미터 없으면 400을 반환한다")
+    void searchClubs_NoParams_Returns400() throws Exception {
+        mockMvc.perform(get("/clubs/search")
+                        .param("page", "0").param("size", "10"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("ERROR"));
+    }
+
+    @Test
+    @DisplayName("GET /clubs/search?name=&tag=으로 AND 검색 시 filterClubs에 위임된다")
+    void searchClubs_WithNameAndTag_DelegatesToFilterClubs() throws Exception {
+        // given
+        given(clubService.filterClubs(any(ClubFilterRequest.class), any()))
+                .willReturn(new PageImpl<>(List.of()));
+
+        // when & then
+        mockMvc.perform(get("/clubs/search")
+                        .param("name", "축구")
+                        .param("tag", "운동")
+                        .param("page", "0").param("size", "10"))
+                .andExpect(status().isOk());
+
+        verify(clubService).filterClubs(
+                argThat(f -> "축구".equals(f.name()) && "운동".equals(f.tag())),
+                any());
+    }
+
+    @Test
+    @DisplayName("GET /clubs/search?tag=으로 태그 검색 시 200 OK와 동아리 리스트를 반환한다")
+    void searchClubsByTag() throws Exception {
+        // given: /clubs/search는 이제 filterClubs에 위임됨
         String tag = "운동";
         User author = new User("Author", "author@example.com");
         Category category = new Category("Academic");
@@ -184,8 +297,8 @@ class ClubControllerTest {
                 .build();
         ReflectionTestUtils.setField(club, "id", 1L);
 
-        given(clubService.searchClubsByTag(eq(tag), any(PageRequest.class)))
-                .willReturn(new PageImpl<>(List.of(club)));
+        given(clubService.filterClubs(any(ClubFilterRequest.class), any()))
+                .willReturn(new PageImpl<>(List.of(new ClubSummaryResponse(club, 0))));
 
         // when & then
         mockMvc.perform(get("/clubs/search")
@@ -197,6 +310,10 @@ class ClubControllerTest {
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
                 .andExpect(jsonPath("$.data.content[0].name").value("Sports Club"))
                 .andExpect(jsonPath("$.data.content[0].tags[0]").value("운동"));
+
+        verify(clubService).filterClubs(
+                argThat(f -> tag.equals(f.tag()) && f.name() == null),
+                any());
     }
 
     @Test
@@ -232,6 +349,19 @@ class ClubControllerTest {
                 .andExpect(jsonPath("$.data").value(true));
 
         verify(clubService).toggleLike(eq(clubId), eq(userId));
+    }
+
+    private Club buildClub() {
+        User author = User.builder().email("author@example.com").nickname("Author").build();
+        Category category = new Category("Academic");
+        Club club = Club.builder()
+                .name("Name").author(author).category(category)
+                .slug("slug").summary("Summary")
+                .recruitingStatus(RecruitingStatus.OPEN)
+                .activityCycle("WEEKLY").isPublic(true)
+                .build();
+        ReflectionTestUtils.setField(club, "id", 1L);
+        return club;
     }
 
     private ClubCreateRequest createCreateRequest(String name, String slug) {

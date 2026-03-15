@@ -3,14 +3,14 @@ package gdgoc.everyclub.club.service;
 import gdgoc.everyclub.club.domain.Category;
 import gdgoc.everyclub.club.domain.Club;
 import gdgoc.everyclub.club.domain.RecruitingStatus;
-import gdgoc.everyclub.club.dto.ClubCreateRequest;
-import gdgoc.everyclub.club.dto.ClubDetailResponse;
-import gdgoc.everyclub.club.dto.ClubUpdateRequest;
+import gdgoc.everyclub.club.dto.*;
 import gdgoc.everyclub.club.repository.CategoryRepository;
 import gdgoc.everyclub.club.repository.ClubRepository;
+import gdgoc.everyclub.college.repository.MajorRepository;
 import gdgoc.everyclub.common.exception.BusinessErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
+import gdgoc.everyclub.common.exception.ValidationErrorCode;
 import gdgoc.everyclub.user.domain.User;
 import gdgoc.everyclub.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,7 +30,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -42,6 +42,9 @@ class ClubServiceTest {
 
     @Mock
     private CategoryRepository categoryRepository;
+
+    @Mock
+    private MajorRepository majorRepository;
 
     @Mock
     private UserService userService;
@@ -307,16 +310,16 @@ class ClubServiceTest {
     }
 
     @Test
-    @DisplayName("태그 검색 시 tag가 50자를 초과하면 예외가 발생한다")
+    @DisplayName("태그 검색 시 tag가 30자를 초과하면 예외가 발생한다")
     void searchClubsByTag_TagTooLong() {
         // given
         PageRequest pageRequest = PageRequest.of(0, 10);
-        String longTag = "a".repeat(51);
+        String longTag = "a".repeat(31);
 
         // when & then
         assertThatThrownBy(() -> clubService.searchClubsByTag(longTag, pageRequest))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Tag must be 50 characters or less");
+                .hasMessage("Tag must be 30 characters or less");
     }
 
     @Test
@@ -329,11 +332,11 @@ class ClubServiceTest {
     }
 
     @Test
-    @DisplayName("태그 검색 시 정확히 20자 태그는 허용된다")
-    void searchClubsByTag_TagExactly20Chars() {
+    @DisplayName("태그 검색 시 정확히 30자 태그는 허용된다")
+    void searchClubsByTag_TagExactly30Chars() {
         // given
         PageRequest pageRequest = PageRequest.of(0, 10);
-        String exactTag = "a".repeat(20);
+        String exactTag = "a".repeat(30);
         given(clubRepository.findByTagsContaining(exactTag, pageRequest)).willReturn(new PageImpl<>(List.of(club)));
 
         // when
@@ -343,6 +346,47 @@ class ClubServiceTest {
         assertThat(clubs.getContent()).hasSize(1);
         verify(clubRepository).findByTagsContaining(exactTag, pageRequest);
     }
+
+    @Test
+    @DisplayName("태그 검색 시 31자 태그는 거부된다")
+    void searchClubsByTag_TagExactly31Chars() {
+        // given
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        String longTag = "a".repeat(31);
+
+        // when & then
+        assertThatThrownBy(() -> clubService.searchClubsByTag(longTag, pageRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Tag must be 30 characters or less");
+    }
+
+    @Test
+    @DisplayName("태그 검색 시 세미콜론이 제거된 후 검색된다")
+    void searchClubsByTag_StripsSemicolon() {
+        // given
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        given(clubRepository.findByTagsContaining("운동", pageRequest)).willReturn(new PageImpl<>(List.of(club)));
+
+        // when
+        Page<Club> result = clubService.searchClubsByTag("운동;", pageRequest);
+
+        // then: 세미콜론이 제거된 "운동"으로 Repository가 호출됨
+        verify(clubRepository).findByTagsContaining("운동", pageRequest);
+        assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("태그 검색 시 세미콜론만 남으면 예외가 발생한다")
+    void searchClubsByTag_SemicolonOnly() {
+        // given
+        PageRequest pageRequest = PageRequest.of(0, 10);
+
+        // when & then: ";;;" → strip → "" (blank)
+        assertThatThrownBy(() -> clubService.searchClubsByTag(";;;", pageRequest))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Tag cannot be null or blank");
+    }
+
 
     private ClubCreateRequest createCreateRequest(String slug) {
         return ClubCreateRequest.builder()
@@ -367,6 +411,216 @@ class ClubServiceTest {
                 .hasFee(false)
                 .isPublic(true)
                 .build();
+    }
+
+    // ── searchClubsByName ─────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("이름으로 동아리를 검색한다 (3자 이하 → ILIKE 경로)")
+    void searchClubsByName_ShortKeyword() {
+        // given: 3자 키워드 → findIdsByNameIlike 호출
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        given(clubRepository.findIdsByNameIlike("축구", 10, 0)).willReturn(List.of(1L));
+        given(clubRepository.countByNameIlike("축구")).willReturn(1L);
+        given(clubRepository.findAllByIdInWithGraph(List.of(1L))).willReturn(List.of(club));
+
+        // when
+        Page<ClubSummaryResponse> result = clubService.searchClubsByName("축구", pageRequest);
+
+        // then
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getTotalElements()).isEqualTo(1);
+        verify(clubRepository).findIdsByNameIlike("축구", 10, 0);
+        verify(clubRepository, org.mockito.Mockito.never()).findIdsByNameTrgm(any(), anyInt(), anyInt());
+    }
+
+    @Test
+    @DisplayName("이름으로 동아리를 검색한다 (4자 이상 → trigram 경로)")
+    void searchClubsByName_LongKeyword() {
+        // given: 4자 키워드 → findIdsByNameTrgm 호출
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        given(clubRepository.findIdsByNameTrgm("축구동아리", 10, 0)).willReturn(List.of(1L));
+        given(clubRepository.countByNameTrgm("축구동아리")).willReturn(1L);
+        given(clubRepository.findAllByIdInWithGraph(List.of(1L))).willReturn(List.of(club));
+
+        // when
+        Page<ClubSummaryResponse> result = clubService.searchClubsByName("축구동아리", pageRequest);
+
+        // then
+        assertThat(result.getContent()).hasSize(1);
+        verify(clubRepository).findIdsByNameTrgm("축구동아리", 10, 0);
+        verify(clubRepository, org.mockito.Mockito.never()).findIdsByNameIlike(any(), anyInt(), anyInt());
+    }
+
+    @Test
+    @DisplayName("이름 검색 결과가 없으면 빈 페이지를 반환한다")
+    void searchClubsByName_NoResults() {
+        // given
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        given(clubRepository.findIdsByNameIlike("없는동아리", 10, 0)).willReturn(List.of());
+        given(clubRepository.countByNameIlike("없는동아리")).willReturn(0L);
+
+        // when
+        Page<ClubSummaryResponse> result = clubService.searchClubsByName("없는동아리", pageRequest);
+
+        // then
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isEqualTo(0);
+        verify(clubRepository, org.mockito.Mockito.never()).findAllByIdInWithGraph(any());
+    }
+
+    @Test
+    @DisplayName("이름 검색 시 공백 키워드는 거부된다")
+    void searchClubsByName_BlankKeyword() {
+        // given
+        PageRequest pageRequest = PageRequest.of(0, 10);
+
+        // when & then
+        assertThatThrownBy(() -> clubService.searchClubsByName("   ", pageRequest))
+                .isInstanceOf(LogicException.class)
+                .extracting("errorCode")
+                .isEqualTo(ValidationErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("이름 검색 시 null 키워드는 거부된다")
+    void searchClubsByName_NullKeyword() {
+        // given
+        PageRequest pageRequest = PageRequest.of(0, 10);
+
+        // when & then
+        assertThatThrownBy(() -> clubService.searchClubsByName(null, pageRequest))
+                .isInstanceOf(LogicException.class)
+                .extracting("errorCode")
+                .isEqualTo(ValidationErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("이름 검색 키워드 앞뒤 공백은 제거 후 검색된다")
+    void searchClubsByName_TrimsKeyword() {
+        // given: "  축구  " → strip → "축구" (2자, ILIKE 경로)
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        given(clubRepository.findIdsByNameIlike("축구", 10, 0)).willReturn(List.of(1L));
+        given(clubRepository.countByNameIlike("축구")).willReturn(1L);
+        given(clubRepository.findAllByIdInWithGraph(List.of(1L))).willReturn(List.of(club));
+
+        // when
+        clubService.searchClubsByName("  축구  ", pageRequest);
+
+        // then: 공백이 제거된 "축구"로 Repository가 호출됨
+        verify(clubRepository).findIdsByNameIlike("축구", 10, 0);
+    }
+
+    // ── filterClubs ───────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("name 단독 필터는 searchClubsByName으로 위임된다")
+    void filterClubs_NameOnly_DelegatesToSearchClubsByName() {
+        // given
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        ClubFilterRequest filter = new ClubFilterRequest(null, null, null, null, "축구", null);
+        given(clubRepository.findIdsByNameIlike("축구", 10, 0)).willReturn(List.of(1L));
+        given(clubRepository.countByNameIlike("축구")).willReturn(1L);
+        given(clubRepository.findAllByIdInWithGraph(List.of(1L))).willReturn(List.of(club));
+
+        // when
+        Page<ClubSummaryResponse> result = clubService.filterClubs(filter, pageRequest);
+
+        // then: trigram/ILIKE 최적화 경로 사용
+        assertThat(result.getContent()).hasSize(1);
+        verify(clubRepository).findIdsByNameIlike("축구", 10, 0);
+    }
+
+    @Test
+    @DisplayName("필터가 모두 비어 있으면 전체 공개 목록을 반환한다")
+    void filterClubs_Empty_DelegatesToGetAllWithLikeCounts() {
+        // given
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        ClubFilterRequest filter = new ClubFilterRequest(null, null, null, null, null, null);
+        given(clubRepository.findAllPublicWithLikeCounts(pageRequest))
+                .willReturn(new PageImpl<>(List.of(new ClubSummaryResponse(club, 0))));
+
+        // when
+        Page<ClubSummaryResponse> result = clubService.filterClubs(filter, pageRequest);
+
+        // then
+        assertThat(result.getContent()).hasSize(1);
+        verify(clubRepository).findAllPublicWithLikeCounts(pageRequest);
+    }
+
+    @Test
+    @DisplayName("빈 categoryIds는 필터 없음으로 처리되어 전체 목록을 반환한다")
+    void filterClubs_EmptyCategoryIds_TreatedAsNoFilter() {
+        // given
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        ClubFilterRequest filter = new ClubFilterRequest(List.of(), null, null, null, null, null);
+        given(clubRepository.findAllPublicWithLikeCounts(pageRequest))
+                .willReturn(new PageImpl<>(List.of(new ClubSummaryResponse(club, 0))));
+
+        // when
+        Page<ClubSummaryResponse> result = clubService.filterClubs(filter, pageRequest);
+
+        // then: isEmpty()가 true → 전체 목록 경로
+        verify(clubRepository).findAllPublicWithLikeCounts(pageRequest);
+        assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("tag + 다른 필터 조합은 Specification 경로를 사용한다")
+    void filterClubs_TagWithFilters_UsesSpecification() {
+        // given: tag + hasFee 조합
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        ClubFilterRequest filter = new ClubFilterRequest(null, null, true, null, null, "운동");
+        given(clubRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageRequest)))
+                .willReturn(new PageImpl<>(List.of(club)));
+        given(clubRepository.findAllByIdInWithGraph(List.of(1L))).willReturn(List.of(club));
+        given(clubRepository.findLikeCountsByIds(List.of(1L))).willReturn(List.of());
+
+        // when
+        Page<ClubSummaryResponse> result = clubService.filterClubs(filter, pageRequest);
+
+        // then: Specification으로 처리됨 (findIdsByNameIlike 미호출)
+        assertThat(result.getContent()).hasSize(1);
+        verify(clubRepository).findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageRequest));
+        verify(clubRepository, org.mockito.Mockito.never()).findIdsByNameIlike(any(), anyInt(), anyInt());
+    }
+
+    @Test
+    @DisplayName("name + tag 조합은 Specification AND 조건으로 처리된다")
+    void filterClubs_NameAndTag_UsesSpecificationAndCondition() {
+        // given: name + tag → hasNameLike AND hasTag Specification
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        ClubFilterRequest filter = new ClubFilterRequest(null, null, null, null, "축구", "운동");
+        given(clubRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageRequest)))
+                .willReturn(new PageImpl<>(List.of(club)));
+        given(clubRepository.findAllByIdInWithGraph(List.of(1L))).willReturn(List.of(club));
+        given(clubRepository.findLikeCountsByIds(List.of(1L))).willReturn(List.of());
+
+        // when
+        Page<ClubSummaryResponse> result = clubService.filterClubs(filter, pageRequest);
+
+        // then: trigram 경로(ILIKE)가 아닌 Specification 경로 사용
+        verify(clubRepository).findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageRequest));
+        verify(clubRepository, org.mockito.Mockito.never()).findIdsByNameIlike(any(), anyInt(), anyInt());
+        verify(clubRepository, org.mockito.Mockito.never()).findIdsByNameTrgm(any(), anyInt(), anyInt());
+        assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("Specification 결과가 없으면 빈 페이지를 반환한다")
+    void filterClubs_SpecificationNoResults() {
+        // given
+        PageRequest pageRequest = PageRequest.of(0, 10);
+        ClubFilterRequest filter = new ClubFilterRequest(null, null, true, null, null, null);
+        given(clubRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageRequest)))
+                .willReturn(new PageImpl<>(List.of()));
+
+        // when
+        Page<ClubSummaryResponse> result = clubService.filterClubs(filter, pageRequest);
+
+        // then
+        assertThat(result.getContent()).isEmpty();
+        verify(clubRepository, org.mockito.Mockito.never()).findAllByIdInWithGraph(any());
     }
 
     @Test
