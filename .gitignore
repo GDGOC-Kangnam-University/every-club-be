@@ -57,3 +57,5 @@ src/test/resources/application-test.yml
 
 # --- Documentation (local) ---
 db_schema.md
+
+sa-key.json
