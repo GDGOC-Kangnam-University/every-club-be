@@ -308,9 +308,15 @@ public class ClubService {
                 .stream()
                 .collect(Collectors.toMap(Club::getId, c -> c));
 
+        // 3단계: like count 배치 조회
+        Map<Long, Integer> likeCountById = clubRepository.findLikeCountsByIds(ids).stream()
+                .collect(Collectors.toMap(
+                        arr -> (Long) arr[0],
+                        arr -> ((Long) arr[1]).intValue()
+                ));
+
         List<ClubSummaryResponse> content = ids.stream()
-                .map(clubById::get)
-                .map(ClubSummaryResponse::new)
+                .map(id -> new ClubSummaryResponse(clubById.get(id), likeCountById.getOrDefault(id, 0)))
                 .toList();
 
         return new PageImpl<>(content, pageable, total);
