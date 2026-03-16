@@ -2,6 +2,7 @@ package gdgoc.everyclub.club.domain;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
+import lombok.EqualsAndHashCode;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -21,6 +22,7 @@ import lombok.NoArgsConstructor;
                 columnList = "tag_id, club_id"))
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@EqualsAndHashCode(of = {"club", "tag"})
 public class ClubTag {
 
     @Id

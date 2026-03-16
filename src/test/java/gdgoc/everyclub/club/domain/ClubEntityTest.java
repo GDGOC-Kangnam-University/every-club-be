@@ -71,6 +71,21 @@ class ClubEntityTest {
     }
 
     @Test
+    @DisplayName("addTag()는 같은 Tag를 중복으로 추가해도 한 번만 유지한다")
+    void addTag_DeduplicatesSameTag() {
+        // given
+        Club club = buildClub();
+        Tag tag = Tag.of("coding");
+
+        // when
+        club.addTag(tag);
+        club.addTag(tag);
+
+        // then
+        assertThat(club.getTagNames()).containsExactly("coding");
+    }
+
+    @Test
     @DisplayName("clearTags()를 호출하면 모든 태그 매핑이 제거된다")
     void clearTags_RemovesAllTagMappings() {
         // given

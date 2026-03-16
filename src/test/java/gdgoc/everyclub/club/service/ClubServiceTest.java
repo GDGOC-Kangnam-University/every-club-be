@@ -3,6 +3,7 @@ package gdgoc.everyclub.club.service;
 import gdgoc.everyclub.club.domain.Category;
 import gdgoc.everyclub.club.domain.Club;
 import gdgoc.everyclub.club.domain.RecruitingStatus;
+import gdgoc.everyclub.club.domain.Tag;
 import gdgoc.everyclub.club.dto.*;
 import gdgoc.everyclub.club.repository.CategoryRepository;
 import gdgoc.everyclub.club.repository.ClubRepository;
@@ -33,6 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
@@ -250,6 +252,31 @@ class ClubServiceTest {
         // then
         assertThat(club.getName()).isEqualTo("New Name");
         assertThat(club.getSummary()).isEqualTo("New Summary");
+    }
+
+    @Test
+    @DisplayName("정규화 결과가 같은 태그들은 한 번만 매핑한다")
+    void updateClub_DeduplicatesNormalizedTags() {
+        // given
+        Tag savedTag = Tag.of("coding");
+        given(clubRepository.findByIdWithAuthor(1L)).willReturn(Optional.of(club));
+        given(tagRepository.findByName("coding")).willReturn(Optional.empty());
+        given(tagRepository.save(any())).willReturn(savedTag);
+
+        // when
+        clubService.updateClub(1L, ClubUpdateRequest.builder()
+                .name("New Name")
+                .summary("New Summary")
+                .recruitingStatus(RecruitingStatus.OPEN)
+                .hasFee(false)
+                .isPublic(true)
+                .tags(List.of(" coding ", "#coding", "CODING"))
+                .build());
+
+        // then
+        assertThat(club.getTagNames()).containsExactly("coding");
+        verify(tagRepository).findByName("coding");
+        verify(tagRepository, times(1)).save(any());
     }
 
     @Test

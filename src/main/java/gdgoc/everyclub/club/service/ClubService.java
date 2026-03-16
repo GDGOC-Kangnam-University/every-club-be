@@ -27,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -357,26 +358,26 @@ public class ClubService {
      * @param club       태그를 설정할 Club 엔티티 (managed state 여야 함)
      * @param rawTagNames 입력 태그 이름 목록 (null 허용)
      */
-    @Transactional
-    public void resolveAndSetTags(Club club, List<String> rawTagNames) {
+    private void resolveAndSetTags(Club club, List<String> rawTagNames) {
         if (rawTagNames == null || rawTagNames.isEmpty()) {
+            throw new LogicException(ValidationErrorCode.INVALID_INPUT);
+        }
+
+        List<String> normalizedTagNames = rawTagNames.stream()
+                .map(TagNormalizer::normalize)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (normalizedTagNames.isEmpty()) {
             throw new LogicException(ValidationErrorCode.INVALID_INPUT);
         }
 
         club.clearTags();
 
-        int added = 0;
-        for (String rawName : rawTagNames) {
-            String normalized = TagNormalizer.normalize(rawName);
-            if (normalized == null) continue;
+        for (String normalized : normalizedTagNames) {
             Tag tag = tagRepository.findByName(normalized)
                     .orElseGet(() -> tagRepository.save(Tag.of(normalized)));
             club.addTag(tag);
-            added++;
-        }
-
-        if (added == 0) {
-            throw new LogicException(ValidationErrorCode.INVALID_INPUT);
         }
     }
 }
