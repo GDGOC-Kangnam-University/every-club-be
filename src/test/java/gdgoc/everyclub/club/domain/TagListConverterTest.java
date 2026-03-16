@@ -71,6 +71,32 @@ class TagListConverterTest {
     }
 
     @Test
+    @DisplayName("저장 시 태그 값의 세미콜론을 제거한다")
+    void convertToDatabaseColumn_StripsSemicolon() {
+        // given: 구분자(;)가 포함된 태그
+        List<String> tags = List.of("운동;공부", "친목");
+
+        // when
+        String result = converter.convertToDatabaseColumn(tags);
+
+        // then: 세미콜론이 제거된 채로 저장된다
+        assertThat(result).isEqualTo(";운동공부;친목;");
+    }
+
+    @Test
+    @DisplayName("세미콜론만 남는 태그는 저장에서 제외된다")
+    void convertToDatabaseColumn_SemicolonOnlyTagIsFiltered() {
+        // given: 세미콜론만 있는 태그는 strip 후 빈 문자열이 됨
+        List<String> tags = List.of(";;;", "운동");
+
+        // when
+        String result = converter.convertToDatabaseColumn(tags);
+
+        // then: 빈 태그는 제외되고 유효한 태그만 저장된다
+        assertThat(result).isEqualTo(";운동;");
+    }
+
+    @Test
     @DisplayName("null 또는 빈 문자열을 빈 리스트로 변환한다")
     void convertToEntityAttribute_Empty() {
         // when
