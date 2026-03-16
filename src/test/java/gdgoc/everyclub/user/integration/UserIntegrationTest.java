@@ -1,6 +1,7 @@
 package gdgoc.everyclub.user.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import gdgoc.everyclub.common.exception.BusinessErrorCode;
 import gdgoc.everyclub.security.dto.CustomUserDetails;
 import gdgoc.everyclub.user.domain.User;
 import gdgoc.everyclub.user.dto.UserCreateRequest;
@@ -19,6 +20,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -82,11 +84,45 @@ class UserIntegrationTest {
 
         // when & then - try to create second user with same email
         UserCreateRequest request2 = new UserCreateRequest("duplicate@example.com", "User Two");
-        org.assertj.core.api.Assertions.assertThatThrownBy(() -> {
+        assertThatThrownBy(() -> {
             userService.createUser(request2);
             userRepository.flush(); // Force the database constraint check
         })
-                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+                .isInstanceOf(gdgoc.everyclub.common.exception.LogicException.class)
+                .extracting("errorCode")
+                .isEqualTo(BusinessErrorCode.DUPLICATE_RESOURCE);
+    }
+
+    @Test
+    @DisplayName("Integration: POST /api/users/signup creates a user without authentication")
+    void signup_Integration() throws Exception {
+        UserCreateRequest request = new UserCreateRequest("signup@example.com", "Signup User");
+
+        mockMvc.perform(post("/api/users/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.email").value("signup@example.com"))
+                .andExpect(jsonPath("$.data.nickname").value("Signup User"));
+
+        assertThat(userRepository.findByEmail("signup@example.com")).isPresent();
+    }
+
+    @Test
+    @DisplayName("Integration: POST /api/users/signup returns 409 for duplicate email")
+    void signup_DuplicateEmail_Integration() throws Exception {
+        userService.createUser(new UserCreateRequest("duplicate-api@example.com", "User One"));
+
+        UserCreateRequest duplicateRequest = new UserCreateRequest("duplicate-api@example.com", "User Two");
+
+        mockMvc.perform(post("/api/users/signup")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(duplicateRequest)))
+                .andDo(print())
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value("ERROR"));
     }
 
     @Test

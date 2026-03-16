@@ -54,3 +54,8 @@ src/test/resources/application-test.yml
 
 # --- Documentation (local) ---
 db_schema.md
+
+# --- Local cache / accidental files ---
+.gradle-user-home/
+nul
+**/nul

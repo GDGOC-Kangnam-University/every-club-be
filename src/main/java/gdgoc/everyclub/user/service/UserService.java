@@ -1,5 +1,6 @@
 package gdgoc.everyclub.user.service;
 
+import gdgoc.everyclub.common.exception.BusinessErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
 import gdgoc.everyclub.user.domain.User;
@@ -7,6 +8,7 @@ import gdgoc.everyclub.user.dto.UserCreateRequest;
 import gdgoc.everyclub.user.dto.UserUpdateRequest;
 import gdgoc.everyclub.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,8 +26,15 @@ public class UserService {
         if (request == null) {
             throw new NullPointerException("UserCreateRequest cannot be null");
         }
+        if (userRepository.existsByEmail(request.email())) {
+            throw new LogicException(BusinessErrorCode.DUPLICATE_RESOURCE);
+        }
         User user = new User(request);
-        userRepository.save(user);
+        try {
+            userRepository.save(user);
+        } catch (DataIntegrityViolationException e) {
+            throw new LogicException(BusinessErrorCode.DUPLICATE_RESOURCE);
+        }
         return user.getId();
     }
 
