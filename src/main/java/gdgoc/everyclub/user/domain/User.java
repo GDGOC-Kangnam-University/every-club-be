@@ -34,6 +34,9 @@ public class User {
     @Column(nullable = false, unique = true)
     private String email;
 
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified = false;
+
     @ManyToMany
     @JoinTable(
             name = "club_likes",
@@ -99,6 +102,10 @@ public class User {
 
     public void updateProfileImage(String profileImageUrl) {
         this.profileImageUrl = profileImageUrl;
+    }
+
+    public void markEmailAsVerified() {
+        this.emailVerified = true;
     }
 
     /**
