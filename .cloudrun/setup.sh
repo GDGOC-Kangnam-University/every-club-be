@@ -85,7 +85,7 @@ for ROLE in roles/run.admin roles/iam.serviceAccountUser roles/artifactregistry.
   gcloud projects add-iam-policy-binding "${PROJECT_ID}" --member="serviceAccount:${SA_EMAIL}" --role="$ROLE" --quiet >/dev/null
 done
 
-PROJECT_NUMBER=$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)' 2>/dev/null | tr -d '\r' || echo "")
+PROJECT_NUMBER=${PROJECT_NUMBER:-$(gcloud projects describe "$PROJECT_ID" --format='value(projectNumber)' 2>/dev/null | tr -d '\r' || echo "")}
 
 if [ -z "$PROJECT_NUMBER" ]; then
   echo "❌ Error: Could not retrieve Project Number for ID: $PROJECT_ID"
