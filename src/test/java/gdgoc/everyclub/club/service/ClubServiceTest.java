@@ -6,6 +6,7 @@ import gdgoc.everyclub.club.domain.RecruitingStatus;
 import gdgoc.everyclub.club.dto.*;
 import gdgoc.everyclub.club.repository.CategoryRepository;
 import gdgoc.everyclub.club.repository.ClubRepository;
+import gdgoc.everyclub.club.repository.TagRepository;
 import gdgoc.everyclub.college.repository.MajorRepository;
 import gdgoc.everyclub.common.exception.BusinessErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
@@ -45,6 +46,9 @@ class ClubServiceTest {
 
     @Mock
     private MajorRepository majorRepository;
+
+    @Mock
+    private TagRepository tagRepository;
 
     @Mock
     private UserService userService;
@@ -90,6 +94,8 @@ class ClubServiceTest {
             ReflectionTestUtils.setField(savedClub, "id", 1L);
             return savedClub;
         });
+        given(tagRepository.findByName(any())).willReturn(java.util.Optional.empty());
+        given(tagRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
         Long clubId = clubService.createClub(request);
@@ -235,6 +241,8 @@ class ClubServiceTest {
         // given
         ClubUpdateRequest request = createUpdateRequest();
         given(clubRepository.findByIdWithAuthor(1L)).willReturn(Optional.of(club));
+        given(tagRepository.findByName(any())).willReturn(java.util.Optional.empty());
+        given(tagRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
         clubService.updateClub(1L, request);
@@ -256,20 +264,21 @@ class ClubServiceTest {
     }
 
     @Test
-    @DisplayName("태그로 동아리를 검색한다")
+    @DisplayName("태그로 동아리를 검색한다 (Tag/ClubTag 조인 기반 정확 매칭)")
     void searchClubsByTag() {
         // given
-        String tag = "운동";
         PageRequest pageRequest = PageRequest.of(0, 10);
-        given(clubRepository.findByTagsContaining(tag, pageRequest)).willReturn(new PageImpl<>(List.of(club)));
+        given(clubRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageRequest)))
+                .willReturn(new PageImpl<>(List.of(club)));
+        given(clubRepository.findAllByIdInWithGraph(List.of(1L))).willReturn(List.of(club));
+        given(clubRepository.findLikeCountsByIds(List.of(1L))).willReturn(List.of());
 
         // when
-        Page<Club> result = clubService.searchClubsByTag(tag, pageRequest);
+        Page<ClubSummaryResponse> result = clubService.searchClubsByTag("운동", pageRequest);
 
         // then
         assertThat(result.getContent()).hasSize(1);
-        assertThat(result.getContent().get(0)).isEqualTo(club);
-        verify(clubRepository).findByTagsContaining(tag, pageRequest);
+        verify(clubRepository).findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageRequest));
     }
 
     @Test
@@ -316,10 +325,10 @@ class ClubServiceTest {
         PageRequest pageRequest = PageRequest.of(0, 10);
         String longTag = "a".repeat(31);
 
-        // when & then
+        // when & then: TagNormalizer.normalize()가 null 반환 → "Tag cannot be null or blank"
         assertThatThrownBy(() -> clubService.searchClubsByTag(longTag, pageRequest))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Tag must be 30 characters or less");
+                .hasMessage("Tag cannot be null or blank");
     }
 
     @Test
@@ -337,14 +346,17 @@ class ClubServiceTest {
         // given
         PageRequest pageRequest = PageRequest.of(0, 10);
         String exactTag = "a".repeat(30);
-        given(clubRepository.findByTagsContaining(exactTag, pageRequest)).willReturn(new PageImpl<>(List.of(club)));
+        given(clubRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageRequest)))
+                .willReturn(new PageImpl<>(List.of(club)));
+        given(clubRepository.findAllByIdInWithGraph(List.of(1L))).willReturn(List.of(club));
+        given(clubRepository.findLikeCountsByIds(List.of(1L))).willReturn(List.of());
 
         // when
-        Page<Club> clubs = clubService.searchClubsByTag(exactTag, pageRequest);
+        Page<ClubSummaryResponse> clubs = clubService.searchClubsByTag(exactTag, pageRequest);
 
         // then
         assertThat(clubs.getContent()).hasSize(1);
-        verify(clubRepository).findByTagsContaining(exactTag, pageRequest);
+        verify(clubRepository).findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageRequest));
     }
 
     @Test
@@ -354,35 +366,39 @@ class ClubServiceTest {
         PageRequest pageRequest = PageRequest.of(0, 10);
         String longTag = "a".repeat(31);
 
-        // when & then
+        // when & then: TagNormalizer.normalize()가 null 반환 → "Tag cannot be null or blank"
         assertThatThrownBy(() -> clubService.searchClubsByTag(longTag, pageRequest))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Tag must be 30 characters or less");
+                .hasMessage("Tag cannot be null or blank");
     }
 
     @Test
-    @DisplayName("태그 검색 시 세미콜론이 제거된 후 검색된다")
-    void searchClubsByTag_StripsSemicolon() {
+    @DisplayName("태그 검색 시 # 접두어가 제거된 후 정규화된 값으로 검색된다")
+    void searchClubsByTag_RemovesHash() {
         // given
         PageRequest pageRequest = PageRequest.of(0, 10);
-        given(clubRepository.findByTagsContaining("운동", pageRequest)).willReturn(new PageImpl<>(List.of(club)));
+        // "#운동" → normalize → "운동" → Specification 검색
+        given(clubRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageRequest)))
+                .willReturn(new PageImpl<>(List.of(club)));
+        given(clubRepository.findAllByIdInWithGraph(List.of(1L))).willReturn(List.of(club));
+        given(clubRepository.findLikeCountsByIds(List.of(1L))).willReturn(List.of());
 
         // when
-        Page<Club> result = clubService.searchClubsByTag("운동;", pageRequest);
+        Page<ClubSummaryResponse> result = clubService.searchClubsByTag("#운동", pageRequest);
 
-        // then: 세미콜론이 제거된 "운동"으로 Repository가 호출됨
-        verify(clubRepository).findByTagsContaining("운동", pageRequest);
+        // then: # 제거 후 Specification 기반으로 검색됨
         assertThat(result.getContent()).hasSize(1);
+        verify(clubRepository).findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageRequest));
     }
 
     @Test
-    @DisplayName("태그 검색 시 세미콜론만 남으면 예외가 발생한다")
-    void searchClubsByTag_SemicolonOnly() {
+    @DisplayName("태그 검색 시 #만 입력되면 예외가 발생한다")
+    void searchClubsByTag_HashOnly() {
         // given
         PageRequest pageRequest = PageRequest.of(0, 10);
 
-        // when & then: ";;;" → strip → "" (blank)
-        assertThatThrownBy(() -> clubService.searchClubsByTag(";;;", pageRequest))
+        // when & then: "###" → normalize → "" (blank) → null → "Tag cannot be null or blank"
+        assertThatThrownBy(() -> clubService.searchClubsByTag("###", pageRequest))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Tag cannot be null or blank");
     }
@@ -399,6 +415,7 @@ class ClubServiceTest {
                 .activityCycle("WEEKLY")
                 .hasFee(false)
                 .isPublic(true)
+                .tags(List.of("운동"))
                 .build();
     }
 
@@ -410,7 +427,67 @@ class ClubServiceTest {
                 .activityCycle("WEEKLY")
                 .hasFee(false)
                 .isPublic(true)
+                .tags(List.of("운동"))
                 .build();
+    }
+
+    // ── resolveAndSetTags ─────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("태그 목록이 null이면 예외가 발생한다")
+    void resolveAndSetTags_NullTags() {
+        // given
+        given(clubRepository.findByIdWithAuthor(1L)).willReturn(Optional.of(club));
+
+        // when & then
+        assertThatThrownBy(() -> clubService.updateClub(1L,
+                ClubUpdateRequest.builder()
+                        .name("Name").summary("Summary")
+                        .recruitingStatus(RecruitingStatus.OPEN)
+                        .hasFee(false).isPublic(true)
+                        .tags(null)
+                        .build()))
+                .isInstanceOf(LogicException.class)
+                .extracting("errorCode")
+                .isEqualTo(ValidationErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("태그 목록이 빈 리스트이면 예외가 발생한다")
+    void resolveAndSetTags_EmptyTags() {
+        // given
+        given(clubRepository.findByIdWithAuthor(1L)).willReturn(Optional.of(club));
+
+        // when & then
+        assertThatThrownBy(() -> clubService.updateClub(1L,
+                ClubUpdateRequest.builder()
+                        .name("Name").summary("Summary")
+                        .recruitingStatus(RecruitingStatus.OPEN)
+                        .hasFee(false).isPublic(true)
+                        .tags(List.of())
+                        .build()))
+                .isInstanceOf(LogicException.class)
+                .extracting("errorCode")
+                .isEqualTo(ValidationErrorCode.INVALID_INPUT);
+    }
+
+    @Test
+    @DisplayName("모든 태그가 정규화 후 유효하지 않으면 예외가 발생한다")
+    void resolveAndSetTags_AllTagsInvalidAfterNormalization() {
+        // given
+        given(clubRepository.findByIdWithAuthor(1L)).willReturn(Optional.of(club));
+
+        // when & then: "###" → normalize → null, "   " → normalize → null
+        assertThatThrownBy(() -> clubService.updateClub(1L,
+                ClubUpdateRequest.builder()
+                        .name("Name").summary("Summary")
+                        .recruitingStatus(RecruitingStatus.OPEN)
+                        .hasFee(false).isPublic(true)
+                        .tags(List.of("###", "   "))
+                        .build()))
+                .isInstanceOf(LogicException.class)
+                .extracting("errorCode")
+                .isEqualTo(ValidationErrorCode.INVALID_INPUT);
     }
 
     // ── searchClubsByName ─────────────────────────────────────────────────────
@@ -532,37 +609,43 @@ class ClubServiceTest {
     }
 
     @Test
-    @DisplayName("필터가 모두 비어 있으면 전체 공개 목록을 반환한다")
-    void filterClubs_Empty_DelegatesToGetAllWithLikeCounts() {
+    @DisplayName("필터가 모두 비어 있으면 isPublic Specification만 적용된 전체 공개 목록을 반환한다")
+    void filterClubs_Empty_ReturnsAllPublicViaSpecification() {
         // given
         PageRequest pageRequest = PageRequest.of(0, 10);
         ClubFilterRequest filter = new ClubFilterRequest(null, null, null, null, null, null);
-        given(clubRepository.findAllPublicWithLikeCounts(pageRequest))
-                .willReturn(new PageImpl<>(List.of(new ClubSummaryResponse(club, 0))));
+        given(clubRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageRequest)))
+                .willReturn(new PageImpl<>(List.of(club)));
+        given(clubRepository.findAllByIdInWithGraph(List.of(1L))).willReturn(List.of(club));
+        given(clubRepository.findLikeCountsByIds(List.of(1L))).willReturn(List.of());
 
         // when
         Page<ClubSummaryResponse> result = clubService.filterClubs(filter, pageRequest);
 
-        // then
+        // then: Specification 경로로 처리됨 (name 단독 경로 미사용)
         assertThat(result.getContent()).hasSize(1);
-        verify(clubRepository).findAllPublicWithLikeCounts(pageRequest);
+        verify(clubRepository).findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageRequest));
+        verify(clubRepository, org.mockito.Mockito.never()).findIdsByNameIlike(any(), anyInt(), anyInt());
+        verify(clubRepository, org.mockito.Mockito.never()).findIdsByNameTrgm(any(), anyInt(), anyInt());
     }
 
     @Test
-    @DisplayName("빈 categoryIds는 필터 없음으로 처리되어 전체 목록을 반환한다")
+    @DisplayName("빈 categoryIds는 필터 없음으로 처리되어 전체 공개 목록을 반환한다")
     void filterClubs_EmptyCategoryIds_TreatedAsNoFilter() {
         // given
         PageRequest pageRequest = PageRequest.of(0, 10);
         ClubFilterRequest filter = new ClubFilterRequest(List.of(), null, null, null, null, null);
-        given(clubRepository.findAllPublicWithLikeCounts(pageRequest))
-                .willReturn(new PageImpl<>(List.of(new ClubSummaryResponse(club, 0))));
+        given(clubRepository.findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageRequest)))
+                .willReturn(new PageImpl<>(List.of(club)));
+        given(clubRepository.findAllByIdInWithGraph(List.of(1L))).willReturn(List.of(club));
+        given(clubRepository.findLikeCountsByIds(List.of(1L))).willReturn(List.of());
 
         // when
         Page<ClubSummaryResponse> result = clubService.filterClubs(filter, pageRequest);
 
-        // then: isEmpty()가 true → 전체 목록 경로
-        verify(clubRepository).findAllPublicWithLikeCounts(pageRequest);
+        // then: 빈 categoryIds는 hasCategories()가 null 반환 → Specification에서 무시됨
         assertThat(result.getContent()).hasSize(1);
+        verify(clubRepository).findAll(any(org.springframework.data.jpa.domain.Specification.class), eq(pageRequest));
     }
 
     @Test

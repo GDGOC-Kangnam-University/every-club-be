@@ -55,7 +55,7 @@ public class ClubDetailResponse {
         this.isPublic = club.isPublic();
         this.isLiked = isLiked;
         this.likeCount = likeCount;
-        this.tags = club.getTags();
+        this.tags = club.getTagNames();
         this.categoryId = club.getCategory() != null ? club.getCategory().getId() : null;
         this.categoryName = club.getCategory() != null ? club.getCategory().getName() : null;
         this.authorName = club.getAuthor() != null ? club.getAuthor().getName() : "Unknown";

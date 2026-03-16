@@ -2,6 +2,7 @@ package gdgoc.everyclub.club.dto;
 
 import gdgoc.everyclub.club.domain.RecruitingStatus;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Builder;
@@ -51,6 +52,7 @@ public record ClubCreateRequest(
 
         boolean isPublic,
 
+        @NotEmpty(message = "At least one tag is required")
         @Size(max = 20, message = "Maximum 20 tags allowed")
         List<@Size(max = 30, message = "Each tag must be less than 30 characters") String> tags
 ) {
