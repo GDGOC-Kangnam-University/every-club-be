@@ -18,7 +18,9 @@ public class ClubDetailResponse {
     private final String bannerUrl;
     private final String joinFormUrl;
     private final RecruitingStatus recruitingStatus;
-    private final String department;
+    private final Long majorId;
+    private final String majorName;
+    private final String collegeName;
     private final String activityCycle;
     private final boolean hasFee;
     private final boolean isPublic;
@@ -45,7 +47,9 @@ public class ClubDetailResponse {
         this.bannerUrl = club.getBannerUrl();
         this.joinFormUrl = club.getJoinFormUrl();
         this.recruitingStatus = club.getRecruitingStatus();
-        this.department = club.getDepartment();
+        this.majorId = club.getMajor() != null ? club.getMajor().getId() : null;
+        this.majorName = club.getMajor() != null ? club.getMajor().getName() : null;
+        this.collegeName = club.getMajor() != null ? club.getMajor().getCollege().getName() : null;
         this.activityCycle = club.getActivityCycle();
         this.hasFee = club.isHasFee();
         this.isPublic = club.isPublic();

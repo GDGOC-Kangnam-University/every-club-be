@@ -32,8 +32,7 @@ public record ClubUpdateRequest(
         @NotNull(message = "Recruiting status must not be null")
         RecruitingStatus recruitingStatus,
 
-        @Size(max = 50)
-        String department,
+        Long majorId,
 
         @Size(max = 50)
         String activityCycle,
@@ -43,6 +42,6 @@ public record ClubUpdateRequest(
         boolean isPublic,
 
         @Size(max = 20, message = "Maximum 20 tags allowed")
-        List<@Size(max = 50, message = "Each tag must be less than 50 characters") String> tags
+        List<@Size(max = 30, message = "Each tag must be less than 30 characters") String> tags
 ) {
 }
