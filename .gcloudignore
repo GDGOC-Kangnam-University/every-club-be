@@ -1,0 +1,11 @@
+.git
+.idea
+build/
+conductor/
+.cloudrun/
+*.md
+.env.sh
+
+# Ensure gradle wrapper is included
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
