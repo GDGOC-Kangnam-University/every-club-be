@@ -455,10 +455,10 @@ class ClubServiceTest {
     @Test
     @DisplayName("이름 검색 결과가 없으면 빈 페이지를 반환한다")
     void searchClubsByName_NoResults() {
-        // given
+        // given: "없는동아리"는 5자 → trigram 경로
         PageRequest pageRequest = PageRequest.of(0, 10);
-        given(clubRepository.findIdsByNameIlike("없는동아리", 10, 0)).willReturn(List.of());
-        given(clubRepository.countByNameIlike("없는동아리")).willReturn(0L);
+        given(clubRepository.findIdsByNameTrgm("없는동아리", 10, 0)).willReturn(List.of());
+        given(clubRepository.countByNameTrgm("없는동아리")).willReturn(0L);
 
         // when
         Page<ClubSummaryResponse> result = clubService.searchClubsByName("없는동아리", pageRequest);

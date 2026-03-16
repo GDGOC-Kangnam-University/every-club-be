@@ -101,7 +101,7 @@ class ClubControllerTest {
                 .build();
         ReflectionTestUtils.setField(club, "id", 1L);
 
-        given(clubService.getClubsWithLikeCounts(any(PageRequest.class))).willReturn(new PageImpl<>(List.of(new ClubSummaryResponse(club, 0))));
+        given(clubService.filterClubs(any(ClubFilterRequest.class), any())).willReturn(new PageImpl<>(List.of(new ClubSummaryResponse(club, 0))));
 
         // when & then
         mockMvc.perform(get("/clubs")
