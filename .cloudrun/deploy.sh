@@ -59,6 +59,7 @@ gcloud run deploy "$SERVICE_NAME" \
   --set-env-vars "S3_ACCESS_KEY=${S3_ACCESS_KEY}" \
   --set-env-vars "S3_SECRET_KEY=${S3_SECRET_KEY}" \
   --set-env-vars "S3_BUCKET=${S3_BUCKET}" \
+  --timeout 300 \
   --project "$PROJECT_ID"
 
 echo "✨ Deployment Finished!"
