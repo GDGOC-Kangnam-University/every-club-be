@@ -24,9 +24,6 @@ build/
 # Maven
 target/
 # Wrapper 캐시 (커밋 X) - wrapper 스크립트/설정파일은 커밋 O
-# gradle-wrapper.jar / maven-wrapper.jar는 보통 커밋하지만,
-!gradle/wrapper/gradle-wrapper.jar
-!gradle/wrapper/gradle-wrapper.properties
 # 로컬 캐시는 제외
 .mvn/wrapper/maven-wrapper.jar
 
@@ -38,6 +35,10 @@ target/
 *.zip
 *.tar.gz
 *.rar
+
+# Ensure Gradle wrapper is included (must be after *.jar)
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
 
 # --- Java toolings ---
 *.class
@@ -52,10 +53,16 @@ src/test/resources/application-test.yml
 .env
 .env.*
 
+!.env.sh.example
+
 # --- Documentation (local) ---
 db_schema.md
+
 
 # --- Local cache / accidental files ---
 .gradle-user-home/
 nul
 **/nul
+
+sa-key.json
+

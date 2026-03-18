@@ -1,0 +1,8 @@
+.git
+.idea
+build/
+conductor
+Dockerfile
+.dockerignore
+.cloudrun
+*.md
