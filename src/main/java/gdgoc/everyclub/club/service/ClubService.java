@@ -2,10 +2,13 @@ package gdgoc.everyclub.club.service;
 
 import gdgoc.everyclub.club.domain.Category;
 import gdgoc.everyclub.club.domain.Club;
+import gdgoc.everyclub.club.domain.Tag;
+import gdgoc.everyclub.club.domain.TagNormalizer;
 import gdgoc.everyclub.club.dto.*;
 import gdgoc.everyclub.club.repository.CategoryRepository;
 import gdgoc.everyclub.club.repository.ClubRepository;
 import gdgoc.everyclub.club.repository.ClubSpecification;
+import gdgoc.everyclub.club.repository.TagRepository;
 import gdgoc.everyclub.college.domain.Major;
 import gdgoc.everyclub.college.repository.MajorRepository;
 import gdgoc.everyclub.common.exception.BusinessErrorCode;
@@ -24,6 +27,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,6 +37,7 @@ public class ClubService {
     private final ClubRepository clubRepository;
     private final CategoryRepository categoryRepository;
     private final MajorRepository majorRepository;
+    private final TagRepository tagRepository;
     private final UserService userService;
 
     @Transactional
@@ -66,18 +71,24 @@ public class ClubService {
                 .activityCycle(request.activityCycle())
                 .hasFee(request.hasFee())
                 .isPublic(request.isPublic())
-                .tags(request.tags())
                 .build();
 
         clubRepository.save(club);
+        resolveAndSetTags(club, request.tags());
         return club.getId();
     }
 
+    /**
+     * 공개 동아리 전체를 페이지 단위로 조회한다 (like count 포함).
+     *
+     * <p>Specification {@code isPublic()} 하나만 적용해 전체 공개 동아리를 반환한다.
+     * 2단계 페치 패턴(ID 조회 → EntityGraph 배치 페치)으로 N+1을 방지한다.
+     */
     public Page<ClubSummaryResponse> getClubsWithLikeCounts(Pageable pageable) {
         if (pageable == null) {
             throw new IllegalArgumentException("Pageable cannot be null");
         }
-        return clubRepository.findAllPublicWithLikeCounts(pageable);
+        return fetchWithLikeCounts(Specification.allOf(ClubSpecification.isPublic()), pageable);
     }
 
     public Page<Club> getClubs(Pageable pageable) {
@@ -101,14 +112,14 @@ public class ClubService {
         if (!club.isPublic()) {
             throw new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND);
         }
-        
+
         boolean isLiked = false;
         if (userId != null) {
             isLiked = clubRepository.existsLikeByUserIdAndClubId(userId, id);
         }
 
         int likeCount = clubRepository.countLikesByClubId(id);
-        
+
         return new ClubDetailResponse(club, isLiked, likeCount);
     }
 
@@ -132,9 +143,9 @@ public class ClubService {
                 major,
                 request.activityCycle(),
                 request.hasFee(),
-                request.isPublic(),
-                request.tags()
+                request.isPublic()
         );
+        resolveAndSetTags(club, request.tags());
     }
 
     @Transactional
@@ -180,20 +191,14 @@ public class ClubService {
     /**
      * 동아리 필터 조회.
      *
-     * <p>필터 조건이 모두 비어 있으면 기존 {@link #getClubsWithLikeCounts(Pageable)}로 위임한다.
-     *
-     * <p>조회 전략 (2단계 + like count 배치):
-     * <ol>
-     *   <li>Specification으로 조건에 맞는 {@link Club} 페이지 조회</li>
-     *   <li>{@code findAllByIdInWithGraph}로 author/category EntityGraph 배치 페치 (N+1 방지)</li>
-     *   <li>{@code findLikeCountsByIds}로 like count 배치 조회</li>
-     * </ol>
+     * <p>조회 전략:
+     * <ul>
+     *   <li>이름 단독 검색 → trigram/ILIKE 최적화 경로 ({@link #searchClubsByName})</li>
+     *   <li>그 외 (empty 포함) → {@code isPublic()} + 조건 Specification → {@link #fetchWithLikeCounts}</li>
+     * </ul>
+     * 태그 조건은 {@link ClubSpecification#hasTag(String)} EXISTS 서브쿼리로 Tag/ClubTag 조인 정확 매칭한다.
      */
     public Page<ClubSummaryResponse> filterClubs(ClubFilterRequest filter, Pageable pageable) {
-        if (filter.isEmpty()) {
-            return getClubsWithLikeCounts(pageable);
-        }
-
         // 이름 단독 검색 → trigram/ILIKE 최적화 경로
         if (filter.isNameOnly()) {
             return searchClubsByName(filter.name(), pageable);
@@ -209,47 +214,33 @@ public class ClubService {
                 ClubSpecification.hasNameLike(filter.name())
         );
 
-        // 1단계: 조건 필터링 (ID + total count)
-        Page<Club> page = clubRepository.findAll(spec, pageable);
-        List<Long> ids = page.map(Club::getId).toList();
-        if (ids.isEmpty()) {
-            return page.map(club -> new ClubSummaryResponse(club, 0));
-        }
-
-        // 2단계: author, category EntityGraph 배치 페치
-        Map<Long, Club> clubById = clubRepository.findAllByIdInWithGraph(ids).stream()
-                .collect(Collectors.toMap(Club::getId, c -> c));
-
-        // 3단계: like count 배치 조회
-        Map<Long, Integer> likeCountById = clubRepository.findLikeCountsByIds(ids).stream()
-                .collect(Collectors.toMap(
-                        arr -> (Long) arr[0],
-                        arr -> ((Long) arr[1]).intValue()
-                ));
-
-        List<ClubSummaryResponse> content = ids.stream()
-                .map(id -> new ClubSummaryResponse(clubById.get(id), likeCountById.getOrDefault(id, 0)))
-                .toList();
-
-        return new PageImpl<>(content, pageable, page.getTotalElements());
+        return fetchWithLikeCounts(spec, pageable);
     }
 
-    public Page<Club> searchClubsByTag(String tag, Pageable pageable) {
+    /**
+     * 태그로 동아리를 검색한다 (Tag/ClubTag 조인 정확 매칭).
+     *
+     * <p>입력 태그는 {@link TagNormalizer}로 정규화되어 정확히 일치하는 Tag를 조인으로 매칭한다.
+     * LIKE 기반 TEXT 검색을 제거하고 관계형 조인으로 교체.
+     */
+    public Page<ClubSummaryResponse> searchClubsByTag(String tag, Pageable pageable) {
         if (tag == null || tag.isBlank()) {
             throw new IllegalArgumentException("Tag cannot be null or blank");
         }
-        String sanitized = tag.replace(";", "").strip();
-        if (sanitized.isBlank()) {
+        String normalized = TagNormalizer.normalize(tag);
+        if (normalized == null) {
             throw new IllegalArgumentException("Tag cannot be null or blank");
-        }
-        if (sanitized.length() > 30) {
-            throw new IllegalArgumentException("Tag must be 30 characters or less");
         }
         if (pageable == null) {
             throw new IllegalArgumentException("Pageable cannot be null");
         }
-        return clubRepository.findByTagsContaining(sanitized, pageable);
+        Specification<Club> spec = Specification.allOf(
+                ClubSpecification.isPublic(),
+                ClubSpecification.hasTag(normalized)
+        );
+        return fetchWithLikeCounts(spec, pageable);
     }
+
     private Major findMajorById(Long majorId) {
         if (majorId == null) {
             return null;
@@ -320,5 +311,73 @@ public class ClubService {
                 .toList();
 
         return new PageImpl<>(content, pageable, total);
+    }
+
+    /**
+     * Specification으로 공개 동아리를 페이지 조회하고 like count까지 조합해 반환한다.
+     *
+     * <p>2단계 + like count 배치 패턴:
+     * <ol>
+     *   <li>Specification으로 ID + total count 조회</li>
+     *   <li>{@code findAllByIdInWithGraph}로 author/category/clubTags EntityGraph 배치 페치</li>
+     *   <li>{@code findLikeCountsByIds}로 like count 배치 조회</li>
+     * </ol>
+     */
+    private Page<ClubSummaryResponse> fetchWithLikeCounts(Specification<Club> spec, Pageable pageable) {
+        Page<Club> page = clubRepository.findAll(spec, pageable);
+        List<Long> ids = page.map(Club::getId).toList();
+        if (ids.isEmpty()) {
+            return page.map(club -> new ClubSummaryResponse(club, 0));
+        }
+
+        Map<Long, Club> clubById = clubRepository.findAllByIdInWithGraph(ids).stream()
+                .collect(Collectors.toMap(Club::getId, c -> c));
+
+        Map<Long, Integer> likeCountById = clubRepository.findLikeCountsByIds(ids).stream()
+                .collect(Collectors.toMap(
+                        arr -> (Long) arr[0],
+                        arr -> ((Long) arr[1]).intValue()
+                ));
+
+        List<ClubSummaryResponse> content = ids.stream()
+                .map(id -> new ClubSummaryResponse(clubById.get(id), likeCountById.getOrDefault(id, 0)))
+                .toList();
+
+        return new PageImpl<>(content, pageable, page.getTotalElements());
+    }
+
+    /**
+     * 태그 이름 목록을 Tag 엔티티로 변환해 Club에 설정한다 (find-or-create).
+     *
+     * <p>기존 매핑을 전부 지우고 새 매핑을 추가한다.
+     * 각 태그 이름은 {@link TagNormalizer#normalize(String)}로 정규화하며,
+     * 정규화 후 null인 값(빈 값, 길이 초과 등)은 무시한다.
+     * 중복 태그 이름은 DB UNIQUE 제약({@code uk_tag_name})으로 보장하며,
+     * 기존 Tag가 없으면 신규 생성한다.
+     *
+     * @param club       태그를 설정할 Club 엔티티 (managed state 여야 함)
+     * @param rawTagNames 입력 태그 이름 목록 (null 허용)
+     */
+    private void resolveAndSetTags(Club club, List<String> rawTagNames) {
+        if (rawTagNames == null || rawTagNames.isEmpty()) {
+            throw new LogicException(ValidationErrorCode.INVALID_INPUT);
+        }
+
+        List<String> normalizedTagNames = rawTagNames.stream()
+                .map(TagNormalizer::normalize)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+        if (normalizedTagNames.isEmpty()) {
+            throw new LogicException(ValidationErrorCode.INVALID_INPUT);
+        }
+
+        club.clearTags();
+
+        for (String normalized : normalizedTagNames) {
+            Tag tag = tagRepository.findByName(normalized)
+                    .orElseGet(() -> tagRepository.save(Tag.of(normalized)));
+            club.addTag(tag);
+        }
     }
 }

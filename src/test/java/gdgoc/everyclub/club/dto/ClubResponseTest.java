@@ -3,6 +3,7 @@ package gdgoc.everyclub.club.dto;
 import gdgoc.everyclub.club.domain.Category;
 import gdgoc.everyclub.club.domain.Club;
 import gdgoc.everyclub.club.domain.RecruitingStatus;
+import gdgoc.everyclub.club.domain.Tag;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -17,20 +18,20 @@ class ClubResponseTest {
     void clubSummaryResponse_HasTags() {
         // given
         Category category = new Category("Academic");
-        List<String> tags = List.of("운동", "친목");
         Club club = Club.builder()
                 .name("Name")
                 .summary("Summary")
                 .slug("slug")
                 .category(category)
-                .tags(tags)
                 .build();
+        club.addTag(Tag.of("운동"));
+        club.addTag(Tag.of("친목"));
 
         // when
         ClubSummaryResponse response = new ClubSummaryResponse(club);
 
         // then
-        assertThat(response.getTags()).containsExactly("운동", "친목");
+        assertThat(response.getTags()).containsExactlyInAnyOrder("운동", "친목");
     }
 
     @Test
@@ -62,21 +63,21 @@ class ClubResponseTest {
     void clubDetailResponse_HasTags() {
         // given
         Category category = new Category("Academic");
-        List<String> tags = List.of("운동", "친목");
         Club club = Club.builder()
                 .name("Name")
                 .summary("Summary")
                 .description("Detailed Description")
                 .slug("slug")
                 .category(category)
-                .tags(tags)
                 .build();
+        club.addTag(Tag.of("운동"));
+        club.addTag(Tag.of("친목"));
 
         // when
         ClubDetailResponse response = new ClubDetailResponse(club);
 
         // then
-        assertThat(response.getTags()).containsExactly("운동", "친목");
+        assertThat(response.getTags()).containsExactlyInAnyOrder("운동", "친목");
     }
 
     @Test

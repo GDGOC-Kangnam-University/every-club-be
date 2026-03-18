@@ -49,7 +49,7 @@ class ClubDtoValidationTest {
         Set<ConstraintViolation<ClubCreateRequest>> violations = validator.validate(request);
 
         // then
-        assertThat(violations).hasSize(6);
+        assertThat(violations).hasSize(7);
         assertThat(violations).extracting(ConstraintViolation::getMessage)
                 .containsExactlyInAnyOrder(
                         "Name must not be empty",
@@ -57,7 +57,8 @@ class ClubDtoValidationTest {
                         "Category ID must not be null",
                         "Slug must not be empty",
                         "Summary must not be empty",
-                        "Recruiting status must not be null"
+                        "Recruiting status must not be null",
+                        "At least one tag is required"
                 );
     }
 }

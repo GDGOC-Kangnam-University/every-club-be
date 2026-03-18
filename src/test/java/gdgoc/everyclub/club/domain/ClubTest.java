@@ -29,24 +29,11 @@ class ClubTest {
         String newSummary = "New Summary";
 
         // when
-        club.update(newName, newSummary, "Desc", null, null, null, RecruitingStatus.OPEN, null, "WEEKLY", false, true, null);
+        club.update(newName, newSummary, "Desc", null, null, null, RecruitingStatus.OPEN, null, "WEEKLY", false, true);
 
         // then
         assertThat(club.getName()).isEqualTo(newName);
         assertThat(club.getSummary()).isEqualTo(newSummary);
-    }
-
-    @Test
-    @DisplayName("동아리 생성 시 이름이 null이면 IllegalArgumentException이 발생한다")
-    void createClub_NullName() {
-        // given
-        User author = User.builder().email("john@example.com").nickname("John Doe").build();
-        Category category = new Category("Academic");
-
-        // when & then
-        assertThatThrownBy(() -> new Club(null, "Summary", author, category, "slug"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Name cannot be null or blank");
     }
 
     @Test
@@ -67,10 +54,48 @@ class ClubTest {
                 .build();
 
         // when
-        club.update(null, "Summary", "Desc", null, null, null, RecruitingStatus.OPEN, null, "WEEKLY", false, true, null);
+        club.update(null, "Summary", "Desc", null, null, null, RecruitingStatus.OPEN, null, "WEEKLY", false, true);
 
         // then
         assertThat(club.getName()).isNull();
+    }
+
+    @Test
+    @DisplayName("동아리 생성 시 이름이 null이면 IllegalArgumentException이 발생한다")
+    void createClub_NullName() {
+        // given
+        User author = User.builder().email("john@example.com").nickname("John Doe").build();
+        Category category = new Category("Academic");
+
+        // when & then
+        assertThatThrownBy(() -> Club.builder()
+                        .name(null)
+                        .author(author)
+                        .category(category)
+                        .slug("slug")
+                        .summary("Summary")
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Name cannot be null or blank");
+    }
+
+    @Test
+    @DisplayName("동아리 생성 시 이름이 공백이면 IllegalArgumentException이 발생한다")
+    void createClub_BlankName() {
+        // given
+        User author = User.builder().email("john@example.com").nickname("John Doe").build();
+        Category category = new Category("Academic");
+
+        // when & then
+        assertThatThrownBy(() -> Club.builder()
+                        .name("   ")
+                        .author(author)
+                        .category(category)
+                        .slug("slug")
+                        .summary("Summary")
+                        .build())
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Name cannot be null or blank");
     }
 
     @Test

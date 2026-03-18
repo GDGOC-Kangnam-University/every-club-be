@@ -282,23 +282,11 @@ class ClubControllerTest {
     @Test
     @DisplayName("GET /clubs/search?tag=으로 태그 검색 시 200 OK와 동아리 리스트를 반환한다")
     void searchClubsByTag() throws Exception {
-        // given: /clubs/search는 이제 filterClubs에 위임됨
+        // given: /clubs/search는 filterClubs에 위임됨
         String tag = "운동";
-        User author = new User("Author", "author@example.com");
-        Category category = new Category("Academic");
-        Club club = Club.builder()
-                .name("Sports Club")
-                .author(author)
-                .category(category)
-                .slug("sports")
-                .summary("Summary")
-                .tags(List.of("운동", "친목"))
-                .isPublic(true)
-                .build();
-        ReflectionTestUtils.setField(club, "id", 1L);
-
+        ClubSummaryResponse response = new ClubSummaryResponse(buildClub(), 0);
         given(clubService.filterClubs(any(ClubFilterRequest.class), any()))
-                .willReturn(new PageImpl<>(List.of(new ClubSummaryResponse(club, 0))));
+                .willReturn(new PageImpl<>(List.of(response)));
 
         // when & then
         mockMvc.perform(get("/clubs/search")
@@ -308,8 +296,7 @@ class ClubControllerTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.content[0].name").value("Sports Club"))
-                .andExpect(jsonPath("$.data.content[0].tags[0]").value("운동"));
+                .andExpect(jsonPath("$.data.content[0].name").value("Name"));
 
         verify(clubService).filterClubs(
                 argThat(f -> tag.equals(f.tag()) && f.name() == null),

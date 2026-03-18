@@ -1,5 +1,6 @@
 package gdgoc.everyclub.user.service;
 
+import gdgoc.everyclub.common.exception.BusinessErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
 import gdgoc.everyclub.user.domain.User;
@@ -90,14 +91,13 @@ class UserServiceTest {
         // given
         String duplicateEmail = "duplicate@example.com";
         UserCreateRequest request = new UserCreateRequest(duplicateEmail, "New User");
-
-        // Mocking behavior: suppose the repository throws an exception for duplicate keys
-        given(userRepository.save(any(User.class)))
-                .willThrow(new org.springframework.dao.DataIntegrityViolationException("Duplicate email"));
+        given(userRepository.existsByEmail(duplicateEmail)).willReturn(true);
 
         // when & then
         assertThatThrownBy(() -> userService.createUser(request))
-                .isInstanceOf(org.springframework.dao.DataIntegrityViolationException.class);
+                .isInstanceOf(LogicException.class)
+                .extracting(ERROR_CODE)
+                .isEqualTo(BusinessErrorCode.DUPLICATE_RESOURCE);
     }
 
     @Test
