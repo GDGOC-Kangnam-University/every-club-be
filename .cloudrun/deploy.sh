@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
 # --- LOAD ENVIRONMENT VARIABLES ---
 if [ -f .env.sh ]; then

@@ -16,4 +16,3 @@ class OpenApiConfig {
                         .title("EveryClub API"));
     }
 }
-        
