@@ -23,11 +23,15 @@ spring:
     password:
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: none
     show-sql: false
     properties:
       hibernate:
         format_sql: false
         highlight_sql: false
         dialect: org.hibernate.dialect.H2Dialect
+  flyway:
+    enabled: true
+    ignore-migration-patterns: "*:ignored"
+    locations: classpath:db/migration
 
