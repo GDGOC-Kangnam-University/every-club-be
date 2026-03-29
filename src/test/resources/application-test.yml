@@ -23,7 +23,7 @@ spring:
     password:
   jpa:
     hibernate:
-      ddl-auto: none
+      ddl-auto: create-drop
     show-sql: false
     properties:
       hibernate:
@@ -31,7 +31,5 @@ spring:
         highlight_sql: false
         dialect: org.hibernate.dialect.H2Dialect
   flyway:
-    enabled: true
-    ignore-migration-patterns: "*:ignored"
-    locations: classpath:db/migration
+    enabled: false
 

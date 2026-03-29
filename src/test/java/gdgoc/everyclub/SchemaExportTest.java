@@ -1,5 +1,6 @@
 package gdgoc.everyclub;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -14,8 +15,10 @@ import org.springframework.boot.test.context.SpringBootTest;
     "spring.jpa.properties.javax.persistence.schema-generation.scripts.action=create",
     "spring.jpa.properties.javax.persistence.schema-generation.scripts.create-target=test-schema.sql",
     "spring.jpa.properties.jakarta.persistence.schema-generation.scripts.action=create",
-    "spring.jpa.properties.jakarta.persistence.schema-generation.scripts.create-target=test-schema.sql"
+    "spring.jpa.properties.jakarta.persistence.schema-generation.scripts.create-target=test-schema.sql",
+    "spring.flyway.enabled=false"
 })
+@Disabled("Development utility test - not needed for CI")
 class SchemaExportTest {
 
     @Test
