@@ -8,13 +8,13 @@ import gdgoc.everyclub.club.dto.*;
 import gdgoc.everyclub.common.exception.ValidationErrorCode;
 import gdgoc.everyclub.club.service.ClubService;
 import gdgoc.everyclub.common.exception.LogicException;
+import gdgoc.everyclub.security.dto.CustomUserDetails;
 import gdgoc.everyclub.security.jwt.JwtProvider;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
 import gdgoc.everyclub.user.domain.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -27,15 +27,16 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.*;
-
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(value = ClubController.class, excludeAutoConfiguration = SecurityAutoConfiguration.class)
+@WebMvcTest(ClubController.class)
 @ActiveProfiles("test")
 class ClubControllerTest {
 
@@ -51,6 +52,10 @@ class ClubControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    private CustomUserDetails createUserDetails() {
+        return new CustomUserDetails(1L, "author@example.com", null, "ROLE_USER");
+    }
+
     @Test
     @DisplayName("동아리 생성 요청 시 200 OK와 생성된 동아리 ID를 반환한다")
     void createClub() throws Exception {
@@ -60,6 +65,8 @@ class ClubControllerTest {
 
         // when & then
         mockMvc.perform(post("/clubs")
+                        .with(user(createUserDetails()))
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -76,6 +83,8 @@ class ClubControllerTest {
 
         // when & then
         mockMvc.perform(post("/clubs")
+                        .with(user(createUserDetails()))
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
@@ -105,6 +114,7 @@ class ClubControllerTest {
 
         // when & then
         mockMvc.perform(get("/clubs")
+                        .with(user(createUserDetails()))
                         .param("page", "0")
                         .param("size", "10"))
                 .andDo(print())
@@ -138,7 +148,8 @@ class ClubControllerTest {
         given(clubService.getPublicClubById(clubId, null)).willReturn(new ClubDetailResponse(club));
 
         // when & then
-        mockMvc.perform(get("/clubs/{id}", clubId))
+        mockMvc.perform(get("/clubs/{id}", clubId)
+                        .with(user(createUserDetails())))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
@@ -155,13 +166,15 @@ class ClubControllerTest {
 
         // when & then
         mockMvc.perform(put("/clubs/{id}", clubId)
+                        .with(user(createUserDetails()))
+                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"));
 
-        verify(clubService).updateClub(eq(clubId), any(ClubUpdateRequest.class));
+        verify(clubService).updateClub(eq(clubId), eq(1L), any(ClubUpdateRequest.class));
     }
 
     // ── GET /clubs (name/tag 통합 검색) ──────────────────────────────────────
@@ -176,6 +189,7 @@ class ClubControllerTest {
 
         // when & then
         mockMvc.perform(get("/clubs")
+                        .with(user(createUserDetails()))
                         .param("name", "축구")
                         .param("page", "0").param("size", "10"))
                 .andExpect(status().isOk())
@@ -197,6 +211,7 @@ class ClubControllerTest {
 
         // when & then
         mockMvc.perform(get("/clubs")
+                        .with(user(createUserDetails()))
                         .param("tag", "운동")
                         .param("page", "0").param("size", "10"))
                 .andExpect(status().isOk())
@@ -216,6 +231,7 @@ class ClubControllerTest {
 
         // when & then
         mockMvc.perform(get("/clubs")
+                        .with(user(createUserDetails()))
                         .param("name", "축구")
                         .param("tag", "운동")
                         .param("page", "0").param("size", "10"))
@@ -236,6 +252,7 @@ class ClubControllerTest {
 
         // when & then
         mockMvc.perform(get("/clubs")
+                        .with(user(createUserDetails()))
                         .param("name", "축구")
                         .param("categoryIds", "1")
                         .param("hasFee", "false")
@@ -255,6 +272,7 @@ class ClubControllerTest {
     @DisplayName("GET /clubs/search 파라미터 없으면 400을 반환한다")
     void searchClubs_NoParams_Returns400() throws Exception {
         mockMvc.perform(get("/clubs/search")
+                        .with(user(createUserDetails()))
                         .param("page", "0").param("size", "10"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("ERROR"));
@@ -269,6 +287,7 @@ class ClubControllerTest {
 
         // when & then
         mockMvc.perform(get("/clubs/search")
+                        .with(user(createUserDetails()))
                         .param("name", "축구")
                         .param("tag", "운동")
                         .param("page", "0").param("size", "10"))
@@ -290,6 +309,7 @@ class ClubControllerTest {
 
         // when & then
         mockMvc.perform(get("/clubs/search")
+                        .with(user(createUserDetails()))
                         .param("tag", tag)
                         .param("page", "0")
                         .param("size", "10"))
@@ -310,12 +330,14 @@ class ClubControllerTest {
         Long clubId = 1L;
 
         // when & then
-        mockMvc.perform(delete("/clubs/{id}", clubId))
+        mockMvc.perform(delete("/clubs/{id}", clubId)
+                        .with(user(createUserDetails()))
+                        .with(csrf()))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"));
 
-        verify(clubService).deleteClub(clubId);
+        verify(clubService).deleteClub(eq(clubId), eq(1L));
     }
 
     @Test
@@ -329,6 +351,8 @@ class ClubControllerTest {
 
         // when & then
         mockMvc.perform(post("/clubs/{id}/like", clubId)
+                        .with(user(createUserDetails()))
+                        .with(csrf())
                         .header("X-User-Id", userId)) // Assume user ID passed via header for now as a mock
                 .andDo(print())
                 .andExpect(status().isOk())

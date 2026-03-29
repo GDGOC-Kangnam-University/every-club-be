@@ -15,6 +15,7 @@ import gdgoc.everyclub.common.exception.BusinessErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
 import gdgoc.everyclub.common.exception.ValidationErrorCode;
+import gdgoc.everyclub.common.exception.AccessErrorCode;
 import gdgoc.everyclub.user.domain.User;
 import gdgoc.everyclub.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -124,11 +125,15 @@ public class ClubService {
     }
 
     @Transactional
-    public void updateClub(Long id, ClubUpdateRequest request) {
+    public void updateClub(Long id, Long userId, ClubUpdateRequest request) {
         if (request == null) {
             throw new NullPointerException("ClubUpdateRequest cannot be null");
         }
         Club club = getClubById(id);
+
+        if (!club.getAuthor().getId().equals(userId)) {
+            throw new LogicException(AccessErrorCode.ACCESS_DENIED);
+        }
 
         Major major = findMajorById(request.majorId());
 
@@ -149,8 +154,13 @@ public class ClubService {
     }
 
     @Transactional
-    public void deleteClub(Long id) {
+    public void deleteClub(Long id, Long userId) {
         Club club = getClubById(id);
+
+        if (!club.getAuthor().getId().equals(userId)) {
+            throw new LogicException(AccessErrorCode.ACCESS_DENIED);
+        }
+
         clubRepository.delete(club);
     }
 
