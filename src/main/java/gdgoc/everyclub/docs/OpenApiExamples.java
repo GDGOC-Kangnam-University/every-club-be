@@ -53,7 +53,7 @@ public final class OpenApiExamples {
               "activityCycle": "격주 금요일",
               "hasFee": true,
               "isPublic": false,
-              "tagIds": [3, 7, 11]
+              "tags": ["개발", "스터디", "친목"]
             }
             """;
 
@@ -73,7 +73,7 @@ public final class OpenApiExamples {
             }
             """;
 
-    public static final String CHECK_EMAIL_REQUEST = "\"student@university.ac.kr\"";
+    public static final String CHECK_EMAIL_REQUEST = "\"student@kangnam.ac.kr\"";
 
     public static final String PRESIGNED_UPLOAD_REQUEST = """
             {

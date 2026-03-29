@@ -1,8 +1,11 @@
 package gdgoc.everyclub.user.service;
 
+import gdgoc.everyclub.auth.service.SignupService;
+import gdgoc.everyclub.common.exception.AuthErrorCode;
 import gdgoc.everyclub.common.exception.BusinessErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
+import gdgoc.everyclub.common.exception.ValidationErrorCode;
 import gdgoc.everyclub.user.domain.User;
 import gdgoc.everyclub.user.domain.UserRole;
 import gdgoc.everyclub.user.dto.UserCreateRequest;
@@ -16,6 +19,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.List;
@@ -24,40 +28,54 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
-
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
-    public static final String ERROR_CODE = "errorCode";
+
+    private static final String ERROR_CODE = "errorCode";
+    private static final String TEST_EMAIL = "john@kangnam.ac.kr";
+    private static final String SIGNUP_TOKEN = "valid-signup-token";
+    private static final String PASSWORD = "Password1!";
 
     private User testUser;
 
-    @BeforeEach
-    void setUp() {
-        testUser = User.builder()
-                .email("test@example.com")
-                .nickname("Test User")
-                .build();
-        ReflectionTestUtils.setField(testUser, "id", 1L);
-    }
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private SignupService signupService;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private UserService userService;
 
+    @BeforeEach
+    void setUp() {
+        testUser = User.builder()
+                .email(TEST_EMAIL)
+                .nickname("Test User")
+                .build();
+        ReflectionTestUtils.setField(testUser, "id", 1L);
+    }
+
     @Test
-    @DisplayName("유저 생성 요청 시 올바른 데이터로 저장을 시도한다")
+    @DisplayName("유효한 signupToken으로 회원가입 시 User가 저장된다")
     void createUser() {
         // given
-        UserCreateRequest request = new UserCreateRequest("john@example.com", "John Doe");
+        UserCreateRequest request = new UserCreateRequest(SIGNUP_TOKEN, "John", null, PASSWORD, PASSWORD);
 
+        given(signupService.consumeSignupToken(SIGNUP_TOKEN)).willReturn(TEST_EMAIL);
+        given(userRepository.existsByEmail(TEST_EMAIL)).willReturn(false);
+        given(passwordEncoder.encode(PASSWORD)).willReturn("$2a$10$hashed");
         given(userRepository.save(any(User.class))).willAnswer(invocation -> {
-            User savedUser = invocation.getArgument(0);
-            ReflectionTestUtils.setField(savedUser, "id", 1L);
-            return savedUser;
+            User saved = invocation.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", 1L);
+            return saved;
         });
 
         // when
@@ -65,35 +83,50 @@ class UserServiceTest {
 
         // then
         assertThat(userId).isEqualTo(1L);
-        
-        // 저장된 객체의 상태를 캡처하여 검증 (단순 호출 확인을 넘어섬)
-        ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-        verify(userRepository).save(userCaptor.capture());
-        
-        User capturedUser = userCaptor.getValue();
-        assertThat(capturedUser.getName()).isEqualTo(request.nickname());
-        assertThat(capturedUser.getEmail()).isEqualTo(request.email());
-        // 기본 권한은 GUEST
-        assertThat(capturedUser.getRole()).isEqualTo(UserRole.GUEST);
+
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        User saved = captor.getValue();
+        assertThat(saved.getEmail()).isEqualTo(TEST_EMAIL);
+        assertThat(saved.getNickname()).isEqualTo("John");
+        assertThat(saved.getPasswordHash()).isEqualTo("$2a$10$hashed");
+        assertThat(saved.isEmailVerified()).isTrue();
+        assertThat(saved.getRole()).isEqualTo(UserRole.GUEST);
     }
 
     @Test
-    @DisplayName("유저 생성 요청 시 request가 null이면 NullPointerException이 발생한다")
-    void createUser_NullRequest() {
-        // when & then
-        assertThatThrownBy(() -> userService.createUser(null))
-                .isInstanceOf(NullPointerException.class);
+    @DisplayName("비밀번호 불일치 시 PASSWORD_MISMATCH 예외 발생")
+    void createUser_PasswordMismatch() {
+        UserCreateRequest request = new UserCreateRequest(SIGNUP_TOKEN, "John", null, "Password1!", "Different1!");
+
+        assertThatThrownBy(() -> userService.createUser(request))
+                .isInstanceOf(LogicException.class)
+                .extracting(ERROR_CODE)
+                .isEqualTo(ValidationErrorCode.PASSWORD_MISMATCH);
     }
 
     @Test
-    @DisplayName("이미 존재하는 이메일로 유저를 생성하려고 하면 예외가 발생한다")
+    @DisplayName("유효하지 않은 signupToken → INVALID_SIGNUP_TOKEN 예외 발생")
+    void createUser_InvalidSignupToken() {
+        UserCreateRequest request = new UserCreateRequest("bad-token", "John", null, PASSWORD, PASSWORD);
+
+        given(signupService.consumeSignupToken("bad-token"))
+                .willThrow(new LogicException(AuthErrorCode.INVALID_SIGNUP_TOKEN));
+
+        assertThatThrownBy(() -> userService.createUser(request))
+                .isInstanceOf(LogicException.class)
+                .extracting(ERROR_CODE)
+                .isEqualTo(AuthErrorCode.INVALID_SIGNUP_TOKEN);
+    }
+
+    @Test
+    @DisplayName("이미 가입된 이메일 → DUPLICATE_RESOURCE 예외 발생")
     void createUser_DuplicateEmail() {
-        // given
-        String duplicateEmail = "duplicate@example.com";
-        UserCreateRequest request = new UserCreateRequest(duplicateEmail, "New User");
-        given(userRepository.existsByEmail(duplicateEmail)).willReturn(true);
+        UserCreateRequest request = new UserCreateRequest(SIGNUP_TOKEN, "John", null, PASSWORD, PASSWORD);
 
-        // when & then
+        given(signupService.consumeSignupToken(SIGNUP_TOKEN)).willReturn(TEST_EMAIL);
+        given(userRepository.existsByEmail(TEST_EMAIL)).willReturn(true);
+
         assertThatThrownBy(() -> userService.createUser(request))
                 .isInstanceOf(LogicException.class)
                 .extracting(ERROR_CODE)
@@ -101,118 +134,92 @@ class UserServiceTest {
     }
 
     @Test
+    @DisplayName("request가 null이면 NullPointerException 발생")
+    void createUser_NullRequest() {
+        assertThatThrownBy(() -> userService.createUser(null))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
     @DisplayName("모든 유저를 조회한다")
     void getUsers() {
-        // given
         User user1 = User.builder().email("user1@example.com").nickname("User1").build();
         User user2 = User.builder().email("user2@example.com").nickname("User2").build();
         given(userRepository.findAll()).willReturn(List.of(user1, user2));
 
-        // when
         List<User> users = userService.getUsers();
 
-        // then
-        assertThat(users).hasSize(2);
-        assertThat(users).containsExactly(user1, user2);
+        assertThat(users).hasSize(2).containsExactly(user1, user2);
     }
 
     @Test
     @DisplayName("ID로 유저를 조회한다")
     void getUserById() {
-        // given
-        Long userId = 1L;
-        given(userRepository.findById(userId)).willReturn(Optional.of(testUser));
+        given(userRepository.findById(1L)).willReturn(Optional.of(testUser));
 
-        // when
-        User foundUser = userService.getUserById(userId);
+        User found = userService.getUserById(1L);
 
-        // then
-        assertThat(foundUser).isEqualTo(testUser);
+        assertThat(found).isEqualTo(testUser);
     }
 
     @Test
-    @DisplayName("존재하지 않는 ID로 유저 조회 시 예외가 발생한다")
+    @DisplayName("존재하지 않는 ID 조회 시 예외 발생")
     void getUserById_NotFound() {
-        // given
-        Long userId = 999L;
-        given(userRepository.findById(userId)).willReturn(Optional.empty());
+        given(userRepository.findById(999L)).willReturn(Optional.empty());
 
-        // when & then
-        assertThatThrownBy(() -> userService.getUserById(userId))
+        assertThatThrownBy(() -> userService.getUserById(999L))
                 .isInstanceOf(LogicException.class)
-                .extracting("errorCode")
+                .extracting(ERROR_CODE)
                 .isEqualTo(ResourceErrorCode.RESOURCE_NOT_FOUND);
     }
 
     @Test
     @DisplayName("유저 정보를 수정한다")
     void updateUser() {
-        // given
-        Long userId = 1L;
-        UserUpdateRequest request = new UserUpdateRequest("John Smith", null, null, null, null);
+        given(userRepository.findById(1L)).willReturn(Optional.of(testUser));
 
-        given(userRepository.findById(userId)).willReturn(Optional.of(testUser));
+        userService.updateUser(1L, new UserUpdateRequest("Updated", null, null, null, null));
 
-        // when
-        userService.updateUser(userId, request);
-
-        // then
-        assertThat(testUser.getName()).isEqualTo("John Smith");
-        // 이메일은 변경되지 않았음을 검증 (비즈니스 로직: 수정 시 이메일 불변)
-        assertThat(testUser.getEmail()).isEqualTo("test@example.com");
+        assertThat(testUser.getName()).isEqualTo("Updated");
+        assertThat(testUser.getEmail()).isEqualTo(TEST_EMAIL);
     }
 
     @Test
-    @DisplayName("존재하지 않는 유저 수정 시 예외가 발생한다")
+    @DisplayName("존재하지 않는 유저 수정 시 예외 발생")
     void updateUser_NotFound() {
-        // given
-        Long userId = 999L;
-        UserUpdateRequest request = new UserUpdateRequest("John Smith", null, null, null, null);
-        given(userRepository.findById(userId)).willReturn(Optional.empty());
+        given(userRepository.findById(999L)).willReturn(Optional.empty());
 
-        // when & then
-        assertThatThrownBy(() -> userService.updateUser(userId, request))
+        assertThatThrownBy(() -> userService.updateUser(999L, new UserUpdateRequest("x", null, null, null, null)))
                 .isInstanceOf(LogicException.class)
-                .extracting("errorCode")
+                .extracting(ERROR_CODE)
                 .isEqualTo(ResourceErrorCode.RESOURCE_NOT_FOUND);
     }
 
     @Test
     @DisplayName("유저를 삭제한다")
     void deleteUser() {
-        // given
-        Long userId = 1L;
-        given(userRepository.findById(userId)).willReturn(Optional.of(testUser));
+        given(userRepository.findById(1L)).willReturn(Optional.of(testUser));
 
-        // when
-        userService.deleteUser(userId);
+        userService.deleteUser(1L);
 
-        // then
         verify(userRepository).delete(testUser);
     }
 
     @Test
-    @DisplayName("유저 정보 수정 시 request가 null이면 NullPointerException이 발생한다")
-    void updateUser_NullRequest() {
-        // given
-        Long userId = 1L;
-
-        // when & then
-        assertThatThrownBy(() -> userService.updateUser(userId, null))
-                .isInstanceOf(NullPointerException.class);
-    }
-
-    @Test
-    @DisplayName("존재하지 않는 유저 삭제 시 예외가 발생한다")
+    @DisplayName("존재하지 않는 유저 삭제 시 예외 발생")
     void deleteUser_NotFound() {
-        // given
-        Long userId = 999L;
-        given(userRepository.findById(userId)).willReturn(Optional.empty());
+        given(userRepository.findById(999L)).willReturn(Optional.empty());
 
-        // when & then
-        assertThatThrownBy(() -> userService.deleteUser(userId))
+        assertThatThrownBy(() -> userService.deleteUser(999L))
                 .isInstanceOf(LogicException.class)
                 .extracting(ERROR_CODE)
                 .isEqualTo(ResourceErrorCode.RESOURCE_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("수정 request가 null이면 NullPointerException 발생")
+    void updateUser_NullRequest() {
+        assertThatThrownBy(() -> userService.updateUser(1L, null))
+                .isInstanceOf(NullPointerException.class);
     }
 }

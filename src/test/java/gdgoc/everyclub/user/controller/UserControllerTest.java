@@ -58,9 +58,9 @@ class UserControllerTest {
     @Test
     @DisplayName("POST /api/users/signup returns created user")
     void signup() throws Exception {
-        UserCreateRequest request = new UserCreateRequest("john@example.com", "John Doe");
+        UserCreateRequest request = new UserCreateRequest("valid-token", "John Doe", null, "Password1!", "Password1!");
         User createdUser = User.builder()
-                .email("john@example.com")
+                .email("john@kangnam.ac.kr")
                 .nickname("John Doe")
                 .build();
 
@@ -75,7 +75,7 @@ class UserControllerTest {
                 .andDo(print())
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.email").value("john@example.com"))
+                .andExpect(jsonPath("$.data.email").value("john@kangnam.ac.kr"))
                 .andExpect(jsonPath("$.data.nickname").value("John Doe"));
 
         verify(userService).createUser(any(UserCreateRequest.class));
@@ -84,7 +84,7 @@ class UserControllerTest {
     @Test
     @DisplayName("POST /api/users/signup returns 409 for duplicate email")
     void signup_DuplicateEmail() throws Exception {
-        UserCreateRequest request = new UserCreateRequest("john@example.com", "John Doe");
+        UserCreateRequest request = new UserCreateRequest("valid-token", "John Doe", null, "Password1!", "Password1!");
         given(userService.createUser(any(UserCreateRequest.class)))
                 .willThrow(new LogicException(BusinessErrorCode.DUPLICATE_RESOURCE));
 
