@@ -25,7 +25,7 @@ import java.util.Set;
 public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private final UserRole role = UserRole.GUEST;
+    private UserRole role = UserRole.GUEST;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
