@@ -2,6 +2,7 @@ package gdgoc.everyclub.storage.controller;
 
 import gdgoc.everyclub.common.ApiResponse;
 import gdgoc.everyclub.docs.OpenApiExamples;
+import gdgoc.everyclub.security.dto.CustomUserDetails;
 import gdgoc.everyclub.storage.dto.PresignedUrlRequest;
 import gdgoc.everyclub.storage.dto.PresignedUrlResponse;
 import gdgoc.everyclub.storage.service.S3Service;
@@ -10,6 +11,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -42,8 +44,10 @@ public class FileController {
                     )
             )
     )
-    public ApiResponse<PresignedUrlResponse> getUploadUrl(@Valid @RequestBody PresignedUrlRequest request) {
-        return ApiResponse.success(s3Service.generateUploadUrl(request));
+    public ApiResponse<PresignedUrlResponse> getUploadUrl(
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Valid @RequestBody PresignedUrlRequest request) {
+        return ApiResponse.success(s3Service.generateUploadUrl(request, userDetails.getUserId()));
     }
 
     /**
@@ -55,8 +59,9 @@ public class FileController {
     @GetMapping("/download-url")
     @Operation(summary = "다운로드 URL 발급", description = "저장된 파일 다운로드를 위한 presigned URL을 발급합니다.")
     public ApiResponse<String> getDownloadUrl(
-            @Parameter(description = "저장된 파일 경로", example = "clubs/gdgoc/banner.png")
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails,
+            @Parameter(description = "저장된 파일 경로", example = "users/1/uuid-banner.png")
             @RequestParam String filePath) {
-        return ApiResponse.success(s3Service.generateDownloadUrl(filePath));
+        return ApiResponse.success(s3Service.generateDownloadUrl(filePath, userDetails.getUserId()));
     }
 }
