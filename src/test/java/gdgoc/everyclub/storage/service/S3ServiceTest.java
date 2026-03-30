@@ -109,6 +109,18 @@ class S3ServiceTest {
     }
 
     @Test
+    @DisplayName("다운로드 URL - URL 인코딩 path traversal 차단")
+    void generateDownloadUrlShouldBlockUrlEncodedTraversal() {
+        // %2e%2e = ".." URL encoded
+        String traversalPath = "users/1/%2e%2e/%2e%2e/other/file.jpg";
+
+        assertThatThrownBy(() -> s3Service.generateDownloadUrl(traversalPath, USER_ID))
+                .isInstanceOf(LogicException.class)
+                .extracting("errorCode")
+                .isEqualTo(AccessErrorCode.ACCESS_DENIED);
+    }
+
+    @Test
     @DisplayName("다운로드 URL - null 경로 시 INVALID_INPUT")
     void generateDownloadUrlShouldRejectNullPath() {
         assertThatThrownBy(() -> s3Service.generateDownloadUrl(null, USER_ID))

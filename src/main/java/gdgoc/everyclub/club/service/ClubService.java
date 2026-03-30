@@ -42,7 +42,7 @@ public class ClubService {
     private final UserService userService;
 
     @Transactional
-    public Long createClub(ClubCreateRequest request) {
+    public Long createClub(ClubCreateRequest request, Long userId) {
         if (request == null) {
             throw new NullPointerException("ClubCreateRequest cannot be null");
         }
@@ -51,7 +51,7 @@ public class ClubService {
             throw new LogicException(BusinessErrorCode.DUPLICATE_RESOURCE);
         }
 
-        User author = userService.getUserById(request.authorId());
+        User author = userService.getUserById(userId);
         Category category = categoryRepository.findById(request.categoryId())
                 .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
 

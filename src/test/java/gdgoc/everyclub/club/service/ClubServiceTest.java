@@ -101,7 +101,7 @@ class ClubServiceTest {
         given(tagRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        Long clubId = clubService.createClub(request);
+        Long clubId = clubService.createClub(request, 1L);
 
         // then
         assertThat(clubId).isEqualTo(1L);
@@ -116,7 +116,7 @@ class ClubServiceTest {
         given(clubRepository.existsBySlug("duplicate-slug")).willReturn(true);
 
         // when & then
-        assertThatThrownBy(() -> clubService.createClub(request))
+        assertThatThrownBy(() -> clubService.createClub(request, 1L))
                 .isInstanceOf(LogicException.class)
                 .extracting("errorCode")
                 .isEqualTo(BusinessErrorCode.DUPLICATE_RESOURCE);
@@ -131,7 +131,7 @@ class ClubServiceTest {
                 .willThrow(new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
 
         // when & then
-        assertThatThrownBy(() -> clubService.createClub(request))
+        assertThatThrownBy(() -> clubService.createClub(request, 1L))
                 .isInstanceOf(LogicException.class)
                 .extracting("errorCode")
                 .isEqualTo(ResourceErrorCode.RESOURCE_NOT_FOUND);
@@ -147,7 +147,7 @@ class ClubServiceTest {
         given(categoryRepository.findById(1L)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> clubService.createClub(request))
+        assertThatThrownBy(() -> clubService.createClub(request, 1L))
                 .isInstanceOf(LogicException.class)
                 .extracting("errorCode")
                 .isEqualTo(ResourceErrorCode.RESOURCE_NOT_FOUND);
@@ -157,7 +157,7 @@ class ClubServiceTest {
     @DisplayName("동아리 생성 시 request가 null이면 NullPointerException이 발생한다")
     void createClub_NullRequest() {
         // when & then
-        assertThatThrownBy(() -> clubService.createClub(null))
+        assertThatThrownBy(() -> clubService.createClub(null, 1L))
                 .isInstanceOf(NullPointerException.class);
     }
 

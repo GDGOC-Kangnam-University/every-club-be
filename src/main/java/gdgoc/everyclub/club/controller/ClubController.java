@@ -45,8 +45,10 @@ public class ClubController {
                     )
             )
     )
-    public ApiResponse<Long> createClub(@RequestBody @Valid ClubCreateRequest request) {
-        Long id = clubService.createClub(request);
+    public ApiResponse<Long> createClub(
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody @Valid ClubCreateRequest request) {
+        Long id = clubService.createClub(request, userDetails.getUserId());
         return ApiResponse.success(id);
     }
 

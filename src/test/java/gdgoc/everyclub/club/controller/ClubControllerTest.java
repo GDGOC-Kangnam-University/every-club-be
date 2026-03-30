@@ -61,7 +61,7 @@ class ClubControllerTest {
     void createClub() throws Exception {
         // given
         ClubCreateRequest request = createCreateRequest("Name", "slug");
-        given(clubService.createClub(any(ClubCreateRequest.class))).willReturn(1L);
+        given(clubService.createClub(any(ClubCreateRequest.class), eq(1L))).willReturn(1L);
 
         // when & then
         mockMvc.perform(post("/clubs")

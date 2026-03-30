@@ -12,6 +12,8 @@ import gdgoc.everyclub.storage.dto.PresignedUrlResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Date;
 import java.util.UUID;
 
@@ -78,19 +80,37 @@ public class S3Service {
     }
 
     private String createPathForUser(String fileName, Long userId) {
-        String sanitized = sanitizeFileName(fileName);
-        return String.format("users/%d/%s", userId, UUID.randomUUID() + "-" + sanitized);
+        return String.format("users/%d/%s", userId, UUID.randomUUID() + "-" + fileName);
     }
 
+    /**
+     * Validates that the file path belongs to the user.
+     * Uses URI normalization to handle URL-encoded path traversal attempts.
+     */
     private void validatePathOwnership(String filePath, Long userId) {
         if (filePath == null || filePath.isBlank()) {
             throw new LogicException(ValidationErrorCode.INVALID_INPUT);
         }
-        if (filePath.contains("..") || filePath.contains("\\")) {
-            throw new LogicException(AccessErrorCode.ACCESS_DENIED);
-        }
-        String expectedPrefix = "users/" + userId + "/";
-        if (!filePath.startsWith(expectedPrefix)) {
+
+        try {
+            // Decode and normalize the path to handle URL-encoded traversal
+            String decodedPath = URI.create(filePath).getPath();
+
+            // Check for path traversal sequences after decoding
+            if (decodedPath.contains("..") || decodedPath.contains("\\")) {
+                throw new LogicException(AccessErrorCode.ACCESS_DENIED);
+            }
+
+            // Verify the path starts with the user's directory
+            String expectedPrefix = "users/" + userId + "/";
+            if (!decodedPath.startsWith(expectedPrefix)) {
+                throw new LogicException(AccessErrorCode.ACCESS_DENIED);
+            }
+        } catch (Exception e) {
+            if (e instanceof LogicException) {
+                throw e;
+            }
+            // Invalid path encoding or structure
             throw new LogicException(AccessErrorCode.ACCESS_DENIED);
         }
     }
@@ -99,6 +119,7 @@ public class S3Service {
         if (fileName == null || fileName.isBlank()) {
             throw new LogicException(ValidationErrorCode.INVALID_INPUT);
         }
+        // Remove path separators and parent directory references
         return fileName.replace("/", "_").replace("\\", "_").replace("..", "_");
     }
 }
