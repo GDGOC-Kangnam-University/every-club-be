@@ -9,6 +9,7 @@ import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
 import gdgoc.everyclub.common.exception.ValidationErrorCode;
 import gdgoc.everyclub.docs.OpenApiExamples;
+import gdgoc.everyclub.security.dto.CustomUserDetails;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -43,8 +45,10 @@ public class ClubController {
                     )
             )
     )
-    public ApiResponse<Long> createClub(@RequestBody @Valid ClubCreateRequest request) {
-        Long id = clubService.createClub(request);
+    public ApiResponse<Long> createClub(
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody @Valid ClubCreateRequest request) {
+        Long id = clubService.createClub(request, userDetails.getUserId());
         return ApiResponse.success(id);
     }
 
@@ -122,15 +126,20 @@ public class ClubController {
                     )
             )
     )
-    public ApiResponse<Void> updateClub(@PathVariable Long id, @RequestBody @Valid ClubUpdateRequest request) {
-        clubService.updateClub(id, request);
+    public ApiResponse<Void> updateClub(
+            @PathVariable Long id,
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails,
+            @RequestBody @Valid ClubUpdateRequest request) {
+        clubService.updateClub(id, userDetails.getUserId(), request);
         return ApiResponse.success();
     }
 
     @DeleteMapping("/{id}")
     @Operation(summary = "동아리 삭제", description = "id로 동아리를 삭제합니다.")
-    public ApiResponse<Void> deleteClub(@PathVariable Long id) {
-        clubService.deleteClub(id);
+    public ApiResponse<Void> deleteClub(
+            @PathVariable Long id,
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails) {
+        clubService.deleteClub(id, userDetails.getUserId());
         return ApiResponse.success();
     }
 

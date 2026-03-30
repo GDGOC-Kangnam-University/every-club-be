@@ -13,6 +13,7 @@ import gdgoc.everyclub.common.exception.BusinessErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
 import gdgoc.everyclub.common.exception.ValidationErrorCode;
+import gdgoc.everyclub.common.exception.AccessErrorCode;
 import gdgoc.everyclub.user.domain.User;
 import gdgoc.everyclub.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -100,7 +101,7 @@ class ClubServiceTest {
         given(tagRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        Long clubId = clubService.createClub(request);
+        Long clubId = clubService.createClub(request, 1L);
 
         // then
         assertThat(clubId).isEqualTo(1L);
@@ -115,7 +116,7 @@ class ClubServiceTest {
         given(clubRepository.existsBySlug("duplicate-slug")).willReturn(true);
 
         // when & then
-        assertThatThrownBy(() -> clubService.createClub(request))
+        assertThatThrownBy(() -> clubService.createClub(request, 1L))
                 .isInstanceOf(LogicException.class)
                 .extracting("errorCode")
                 .isEqualTo(BusinessErrorCode.DUPLICATE_RESOURCE);
@@ -130,7 +131,7 @@ class ClubServiceTest {
                 .willThrow(new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
 
         // when & then
-        assertThatThrownBy(() -> clubService.createClub(request))
+        assertThatThrownBy(() -> clubService.createClub(request, 1L))
                 .isInstanceOf(LogicException.class)
                 .extracting("errorCode")
                 .isEqualTo(ResourceErrorCode.RESOURCE_NOT_FOUND);
@@ -146,7 +147,7 @@ class ClubServiceTest {
         given(categoryRepository.findById(1L)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> clubService.createClub(request))
+        assertThatThrownBy(() -> clubService.createClub(request, 1L))
                 .isInstanceOf(LogicException.class)
                 .extracting("errorCode")
                 .isEqualTo(ResourceErrorCode.RESOURCE_NOT_FOUND);
@@ -156,7 +157,7 @@ class ClubServiceTest {
     @DisplayName("동아리 생성 시 request가 null이면 NullPointerException이 발생한다")
     void createClub_NullRequest() {
         // when & then
-        assertThatThrownBy(() -> clubService.createClub(null))
+        assertThatThrownBy(() -> clubService.createClub(null, 1L))
                 .isInstanceOf(NullPointerException.class);
     }
 
@@ -247,7 +248,7 @@ class ClubServiceTest {
         given(tagRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        clubService.updateClub(1L, request);
+        clubService.updateClub(1L, 1L, request);
 
         // then
         assertThat(club.getName()).isEqualTo("New Name");
@@ -264,7 +265,7 @@ class ClubServiceTest {
         given(tagRepository.save(any())).willReturn(savedTag);
 
         // when
-        clubService.updateClub(1L, ClubUpdateRequest.builder()
+        clubService.updateClub(1L, 1L, ClubUpdateRequest.builder()
                 .name("New Name")
                 .summary("New Summary")
                 .recruitingStatus(RecruitingStatus.OPEN)
@@ -286,7 +287,7 @@ class ClubServiceTest {
         Long clubId = 1L;
 
         // when & then
-        assertThatThrownBy(() -> clubService.updateClub(clubId, null))
+        assertThatThrownBy(() -> clubService.updateClub(clubId, 1L, null))
                 .isInstanceOf(NullPointerException.class);
     }
 
@@ -315,10 +316,41 @@ class ClubServiceTest {
         given(clubRepository.findByIdWithAuthor(1L)).willReturn(Optional.of(club));
 
         // when
-        clubService.deleteClub(1L);
+        clubService.deleteClub(1L, 1L);
 
         // then
         verify(clubRepository).delete(club);
+    }
+
+    @Test
+    @DisplayName("updateClub - author가 아니면 ACCESS_DENIED 발생")
+    void updateClub_notAuthor_throwsAccessDenied() {
+        // given
+        Long clubId = 1L;
+        Long otherUserId = 999L;
+        ClubUpdateRequest request = createUpdateRequest();
+        given(clubRepository.findByIdWithAuthor(1L)).willReturn(Optional.of(club));
+
+        // when & then
+        assertThatThrownBy(() -> clubService.updateClub(clubId, otherUserId, request))
+                .isInstanceOf(LogicException.class)
+                .extracting("errorCode")
+                .isEqualTo(AccessErrorCode.ACCESS_DENIED);
+    }
+
+    @Test
+    @DisplayName("deleteClub - author가 아니면 ACCESS_DENIED 발생")
+    void deleteClub_notAuthor_throwsAccessDenied() {
+        // given
+        Long clubId = 1L;
+        Long otherUserId = 999L;
+        given(clubRepository.findByIdWithAuthor(1L)).willReturn(Optional.of(club));
+
+        // when & then
+        assertThatThrownBy(() -> clubService.deleteClub(clubId, otherUserId))
+                .isInstanceOf(LogicException.class)
+                .extracting("errorCode")
+                .isEqualTo(AccessErrorCode.ACCESS_DENIED);
     }
 
     @Test
@@ -467,7 +499,7 @@ class ClubServiceTest {
         given(clubRepository.findByIdWithAuthor(1L)).willReturn(Optional.of(club));
 
         // when & then
-        assertThatThrownBy(() -> clubService.updateClub(1L,
+        assertThatThrownBy(() -> clubService.updateClub(1L, 1L,
                 ClubUpdateRequest.builder()
                         .name("Name").summary("Summary")
                         .recruitingStatus(RecruitingStatus.OPEN)
@@ -486,7 +518,7 @@ class ClubServiceTest {
         given(clubRepository.findByIdWithAuthor(1L)).willReturn(Optional.of(club));
 
         // when & then
-        assertThatThrownBy(() -> clubService.updateClub(1L,
+        assertThatThrownBy(() -> clubService.updateClub(1L, 1L,
                 ClubUpdateRequest.builder()
                         .name("Name").summary("Summary")
                         .recruitingStatus(RecruitingStatus.OPEN)
@@ -505,7 +537,7 @@ class ClubServiceTest {
         given(clubRepository.findByIdWithAuthor(1L)).willReturn(Optional.of(club));
 
         // when & then: "###" → normalize → null, "   " → normalize → null
-        assertThatThrownBy(() -> clubService.updateClub(1L,
+        assertThatThrownBy(() -> clubService.updateClub(1L, 1L,
                 ClubUpdateRequest.builder()
                         .name("Name").summary("Summary")
                         .recruitingStatus(RecruitingStatus.OPEN)
