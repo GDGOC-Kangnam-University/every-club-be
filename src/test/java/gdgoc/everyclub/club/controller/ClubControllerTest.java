@@ -5,8 +5,9 @@ import gdgoc.everyclub.club.domain.Category;
 import gdgoc.everyclub.club.domain.Club;
 import gdgoc.everyclub.club.domain.RecruitingStatus;
 import gdgoc.everyclub.club.dto.*;
-import gdgoc.everyclub.common.exception.ValidationErrorCode;
+import gdgoc.everyclub.club.service.ClubAdminService;
 import gdgoc.everyclub.club.service.ClubService;
+import gdgoc.everyclub.common.exception.ValidationErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.security.jwt.JwtProvider;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
@@ -46,42 +47,13 @@ class ClubControllerTest {
     private ClubService clubService;
 
     @MockitoBean
+    private ClubAdminService clubAdminService;
+
+    @MockitoBean
     private JwtProvider jwtProvider;
 
     @Autowired
     private ObjectMapper objectMapper;
-
-    @Test
-    @DisplayName("동아리 생성 요청 시 200 OK와 생성된 동아리 ID를 반환한다")
-    void createClub() throws Exception {
-        // given
-        ClubCreateRequest request = createCreateRequest("Name", "slug");
-        given(clubService.createClub(any(ClubCreateRequest.class))).willReturn(1L);
-
-        // when & then
-        mockMvc.perform(post("/clubs")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("SUCCESS"))
-                .andExpect(jsonPath("$.data").value(1L));
-    }
-
-    @Test
-    @DisplayName("동아리 생성 요청 시 필수 값이 누락되면 400 Bad Request를 반환한다")
-    void createClub_InvalidInput() throws Exception {
-        // given: empty name is invalid
-        ClubCreateRequest request = createCreateRequest("", "slug");
-
-        // when & then
-        mockMvc.perform(post("/clubs")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value("ERROR"));
-    }
 
     @Test
     @DisplayName("모든 동아리 조회 시 200 OK와 동아리 리스트를 반환한다")
@@ -349,21 +321,6 @@ class ClubControllerTest {
                 .build();
         ReflectionTestUtils.setField(club, "id", 1L);
         return club;
-    }
-
-    private ClubCreateRequest createCreateRequest(String name, String slug) {
-        return ClubCreateRequest.builder()
-                .name(name)
-                .authorId(1L)
-                .categoryId(1L)
-                .slug(slug)
-                .summary("Summary")
-                .recruitingStatus(RecruitingStatus.OPEN)
-                .activityCycle("WEEKLY")
-                .hasFee(false)
-                .isPublic(true)
-                .tags(List.of("tag1", "tag2"))
-                .build();
     }
 
     private ClubUpdateRequest createUpdateRequest(String name) {

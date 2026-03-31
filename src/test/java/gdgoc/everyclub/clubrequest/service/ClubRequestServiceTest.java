@@ -6,6 +6,7 @@ import gdgoc.everyclub.club.domain.Category;
 import gdgoc.everyclub.club.domain.Club;
 import gdgoc.everyclub.club.domain.RecruitingStatus;
 import gdgoc.everyclub.club.repository.CategoryRepository;
+import gdgoc.everyclub.club.repository.ClubAdminRepository;
 import gdgoc.everyclub.club.repository.ClubRepository;
 import gdgoc.everyclub.club.repository.TagRepository;
 import gdgoc.everyclub.clubrequest.domain.ClubRequest;
@@ -55,6 +56,9 @@ class ClubRequestServiceTest {
 
     @Mock
     private ClubRepository clubRepository;
+
+    @Mock
+    private ClubAdminRepository clubAdminRepository;
 
     @Mock
     private CategoryRepository categoryRepository;

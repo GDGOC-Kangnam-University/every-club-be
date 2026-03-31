@@ -9,8 +9,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.annotations.Where;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
@@ -21,11 +21,11 @@ import java.util.Set;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLDelete(sql = "UPDATE users SET deleted_at = NOW() WHERE id = ?")
-@Where(clause = "deleted_at IS NULL")
+@SQLRestriction("deleted_at IS NULL")
 public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private final UserRole role = UserRole.GUEST;
+    private UserRole role = UserRole.GUEST;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

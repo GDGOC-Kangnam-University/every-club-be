@@ -1,26 +1,6 @@
 package gdgoc.everyclub.docs;
 
 public final class OpenApiExamples {
-    public static final String CREATE_CLUB_REQUEST = """
-            {
-              "name": "강남대 GDGoC",
-              "authorId": 1,
-              "categoryId": 2,
-              "slug": "gdgoc-knu",
-              "summary": "개발 스터디와 프로젝트를 함께하는 동아리입니다.",
-              "description": "정기 스터디, 연사 세션, 사이드 프로젝트를 함께 진행합니다.",
-              "logoUrl": "https://cdn.everyclub.app/clubs/gdgoc/logo.png",
-              "bannerUrl": "https://cdn.everyclub.app/clubs/gdgoc/banner.png",
-              "joinFormUrl": "https://forms.gle/join-gdgoc-knu",
-              "recruitingStatus": "OPEN",
-              "majorId": 101,
-              "activityCycle": "매주 목요일 저녁",
-              "hasFee": false,
-              "isPublic": true,
-              "tags": ["개발", "스터디", "커뮤니티"]
-            }
-            """;
-
     public static final String UPDATE_CLUB_REQUEST = """
             {
               "name": "강남대 GDGoC",

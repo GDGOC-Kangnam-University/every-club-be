@@ -3,6 +3,7 @@ package gdgoc.everyclub.clubrequest.controller;
 import gdgoc.everyclub.clubrequest.dto.ClubRegistrationRequest;
 import gdgoc.everyclub.clubrequest.dto.ClubRegistrationResponse;
 import gdgoc.everyclub.clubrequest.dto.ClubRequestAdminResponse;
+import gdgoc.everyclub.clubrequest.dto.ClubRequestMyResponse;
 import gdgoc.everyclub.clubrequest.dto.ClubRequestRejectRequest;
 import gdgoc.everyclub.clubrequest.service.ClubRequestService;
 import gdgoc.everyclub.common.ApiResponse;
@@ -13,6 +14,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -49,18 +51,38 @@ public class ClubRequestController {
     }
 
     @GetMapping
+    @PreAuthorize("hasAuthority('SYSTEM_ADMIN')")
     @Operation(summary = "동아리 승인 요청 목록 조회", description = "관리자 검토용 동아리 승인 요청 목록을 조회합니다.")
     public ApiResponse<List<ClubRequestAdminResponse>> getClubRequests() {
         return ApiResponse.success(clubRequestService.getClubRequests());
     }
 
+    @GetMapping("/me")
+    @Operation(summary = "내 동아리 등록 신청 목록", description = "내가 신청한 동아리 등록 요청 목록을 최신순으로 반환합니다.")
+    public ApiResponse<List<ClubRequestMyResponse>> getMyRequests(
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails) {
+        return ApiResponse.success(clubRequestService.getMyRequests(userDetails.getUserId()));
+    }
+
+    @PutMapping("/me/{publicId}")
+    @Operation(summary = "동아리 등록 신청 수정 및 재신청", description = "반려된(REJECTED) 신청을 수정하여 재신청합니다.")
+    public ApiResponse<ClubRegistrationResponse> resubmitClubRequest(
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails,
+            @PathVariable UUID publicId,
+            @RequestBody @Valid ClubRegistrationRequest request) {
+        ClubRegistrationResponse response = clubRequestService.resubmitClubRequest(publicId, userDetails.getUserId(), request);
+        return ApiResponse.success(response);
+    }
+
     @GetMapping("/{publicId}")
+    @PreAuthorize("hasAuthority('SYSTEM_ADMIN')")
     @Operation(summary = "동아리 승인 요청 상세 조회", description = "public id로 단건 승인 요청을 조회합니다.")
     public ApiResponse<ClubRequestAdminResponse> getClubRequest(@PathVariable UUID publicId) {
         return ApiResponse.success(clubRequestService.getClubRequest(publicId));
     }
 
     @PatchMapping("/{publicId}/approve")
+    @PreAuthorize("hasAuthority('SYSTEM_ADMIN')")
     @Operation(summary = "동아리 승인 요청 승인", description = "대기 중인 동아리 승인 요청을 승인하고 실제 동아리를 생성합니다.")
     public ApiResponse<ClubRegistrationResponse> approveClubRequest(
             @Parameter(hidden = true)
@@ -71,6 +93,7 @@ public class ClubRequestController {
     }
 
     @PatchMapping("/{publicId}/reject")
+    @PreAuthorize("hasAuthority('SYSTEM_ADMIN')")
     @Operation(summary = "동아리 승인 요청 반려", description = "대기 중인 동아리 승인 요청을 관리자 메모와 함께 반려합니다.")
     @io.swagger.v3.oas.annotations.parameters.RequestBody(
             required = true,
