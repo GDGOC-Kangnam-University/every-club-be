@@ -116,14 +116,6 @@ public class ClubService {
         clubRepository.delete(club);
     }
 
-    /**
-     * Validates that the user exists in the system.
-     * Temporary authentication check until Spring Security is implemented.
-     */
-    public boolean validateUserExists(Long userId) {
-        return userService.existsById(userId);
-    }
-
     @Transactional
     public boolean toggleLike(Long clubId, Long userId) {
         // Validate club exists first using lightweight exists query

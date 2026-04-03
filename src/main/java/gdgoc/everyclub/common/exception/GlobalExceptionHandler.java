@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-import java.nio.file.AccessDeniedException;
+import org.springframework.security.access.AccessDeniedException;
 
 import static gdgoc.everyclub.common.exception.AccessErrorCode.ACCESS_DENIED;
 import static gdgoc.everyclub.common.exception.SystemErrorCode.INTERNAL_ERROR;

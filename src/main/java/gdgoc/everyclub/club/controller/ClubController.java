@@ -4,7 +4,6 @@ import gdgoc.everyclub.club.dto.*;
 import gdgoc.everyclub.club.service.ClubAdminService;
 import gdgoc.everyclub.club.service.ClubService;
 import gdgoc.everyclub.common.ApiResponse;
-import gdgoc.everyclub.common.exception.AuthErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ValidationErrorCode;
 import gdgoc.everyclub.docs.OpenApiExamples;
@@ -122,14 +121,13 @@ public class ClubController {
     }
 
     @GetMapping("/{id}")
-    @Operation(summary = "동아리 상세 조회", description = "공개 동아리 상세 정보를 조회합니다. 선택적인 레거시 사용자 헤더가 있으면 좋아요 상태를 함께 계산합니다.")
+    @Operation(summary = "동아리 상세 조회", description = "공개 동아리 상세 정보를 조회합니다. 인증된 사용자의 좋아요 상태를 함께 반환합니다.")
     public ApiResponse<ClubDetailResponse> getClub(
             @Parameter(description = "동아리 id", example = "1")
             @PathVariable Long id,
-            @Parameter(description = "좋아요 상태 계산에 사용하는 레거시 사용자 id 헤더", example = "42", required = false, deprecated = true)
-            @RequestHeader(name = "X-User-Id", required = false) Long userId
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        ClubDetailResponse response = clubService.getPublicClubById(id, userId);
+        ClubDetailResponse response = clubService.getPublicClubById(id, userDetails.getUserId());
         return ApiResponse.success(response);
     }
 
@@ -180,15 +178,9 @@ public class ClubController {
     public ApiResponse<Boolean> toggleLike(
             @Parameter(description = "동아리 id", example = "1")
             @PathVariable @Positive(message = "Club ID must be positive") Long id,
-            @Parameter(description = "현재 구현에서 사용하는 레거시 사용자 id 헤더", example = "42", deprecated = true)
-            @RequestHeader(name = "X-User-Id") @Positive(message = "User ID must be positive") Long userId
+            @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
-        // Authentication check: Validate that the user exists in the system
-        // TODO: Replace with @AuthenticationPrincipal after implementing Spring Security
-        if (!clubService.validateUserExists(userId)) {
-            throw new LogicException(AuthErrorCode.AUTHENTICATION_REQUIRED);
-        }
-        boolean isLiked = clubService.toggleLike(id, userId);
+        boolean isLiked = clubService.toggleLike(id, userDetails.getUserId());
         return ApiResponse.success(isLiked);
     }
 }

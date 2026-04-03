@@ -296,7 +296,6 @@ class ClubControllerTest {
         // given
         Long clubId = 1L;
         Long userId = 1L; // Mocked user ID
-        given(clubService.validateUserExists(userId)).willReturn(true);
         given(clubService.toggleLike(eq(clubId), eq(userId))).willReturn(true);
 
         // when & then
