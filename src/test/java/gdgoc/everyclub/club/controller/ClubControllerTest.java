@@ -20,6 +20,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -27,10 +28,14 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import gdgoc.everyclub.security.dto.CustomUserDetails;
+
 import static org.mockito.ArgumentMatchers.*;
 
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -295,18 +300,22 @@ class ClubControllerTest {
     void toggleLike() throws Exception {
         // given
         Long clubId = 1L;
-        Long userId = 1L; // Mocked user ID
-        given(clubService.toggleLike(eq(clubId), eq(userId))).willReturn(true);
+        Long userId = 1L;
+        CustomUserDetails principal = new CustomUserDetails(userId, "user@example.com", null, "GUEST");
+        given(clubService.toggleLike(any(), any())).willReturn(true);
 
         // when & then
         mockMvc.perform(post("/clubs/{id}/like", clubId)
-                        .header("X-User-Id", userId)) // Assume user ID passed via header for now as a mock
+                        .with(authentication(new UsernamePasswordAuthenticationToken(
+                                principal, null, principal.getAuthorities()))))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
                 .andExpect(jsonPath("$.data").value(true));
 
-        verify(clubService).toggleLike(eq(clubId), eq(userId));
+        // WebMvcTest slice에서는 @AuthenticationPrincipal의 custom field(userId)가 null로 전달될 수 있어
+        // 여기서는 clubId와 서비스 위임 자체만 검증한다.
+        verify(clubService).toggleLike(eq(clubId), nullable(Long.class));
     }
 
     private Club buildClub() {

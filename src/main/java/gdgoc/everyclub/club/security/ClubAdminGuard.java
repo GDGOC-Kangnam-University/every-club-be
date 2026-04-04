@@ -26,7 +26,7 @@ public class ClubAdminGuard {
     }
 
     /**
-     * LEAD 전용 작업(삭제, 관리자 추가/제거, 위임)을 수행할 수 있는지 확인한다.
+     * LEAD 전용 작업(삭제, 관리자 추가/제거)을 수행할 수 있는지 확인한다.
      * SYSTEM_ADMIN 이거나 해당 동아리의 LEAD이면 true.
      */
     public boolean canLead(Authentication authentication, Long clubId) {
@@ -34,6 +34,16 @@ public class ClubAdminGuard {
         if ("SYSTEM_ADMIN".equals(userDetails.getRole())) {
             return true;
         }
+        return clubAdminRepository.existsByUserIdAndClubIdAndRole(
+                userDetails.getUserId(), clubId, ClubAdminRole.LEAD);
+    }
+
+    /**
+     * LEAD 위임을 수행할 수 있는지 확인한다.
+     * 실제 해당 동아리의 LEAD만 가능하다 (SYSTEM_ADMIN 포함 예외 없음).
+     */
+    public boolean canDelegate(Authentication authentication, Long clubId) {
+        CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         return clubAdminRepository.existsByUserIdAndClubIdAndRole(
                 userDetails.getUserId(), clubId, ClubAdminRole.LEAD);
     }

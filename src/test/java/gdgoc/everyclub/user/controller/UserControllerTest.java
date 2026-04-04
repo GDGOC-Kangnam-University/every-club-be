@@ -206,7 +206,11 @@ class UserControllerTest {
                         .with(user(createUserDetails()))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("\"student@kangnam.ac.kr\""))
+                        .content("""
+                                {
+                                  "email": "student@kangnam.ac.kr"
+                                }
+                                """))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
@@ -216,7 +220,11 @@ class UserControllerTest {
                         .with(user(createUserDetails()))
                         .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("\"test@gmail.com\""))
+                        .content("""
+                                {
+                                  "email": "test@gmail.com"
+                                }
+                                """))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data").value(false));

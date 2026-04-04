@@ -84,6 +84,7 @@ public class ClubAdminService {
 
     /** 동아리 관리자 목록 조회 */
     public List<ClubAdminResponse> getClubAdmins(Long clubId) {
+        getClubOrThrow(clubId);
         return clubAdminRepository.findByClubId(clubId).stream()
                 .map(ClubAdminResponse::from)
                 .toList();
@@ -95,8 +96,7 @@ public class ClubAdminService {
         if (clubAdminRepository.existsByUserIdAndClubId(targetUserId, clubId)) {
             throw new LogicException(BusinessErrorCode.DUPLICATE_RESOURCE);
         }
-        Club club = clubRepository.findById(clubId)
-                .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
+        Club club = getClubOrThrow(clubId);
         User targetUser = userService.getUserById(targetUserId);
 
         clubAdminRepository.save(ClubAdmin.builder()
@@ -108,12 +108,23 @@ public class ClubAdminService {
 
     @Transactional
     public void removeClubAdmin(Long clubId, Long targetUserId) {
+        getClubOrThrow(clubId);
         List<ClubAdmin> admins = clubAdminRepository.findByClubId(clubId);
         if (admins.size() <= 1) {
             throw new LogicException(BusinessErrorCode.LAST_ADMIN_CANNOT_BE_REMOVED);
         }
         ClubAdmin clubAdmin = clubAdminRepository.findByUserIdAndClubId(targetUserId, clubId)
                 .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
+
+        if (clubAdmin.getRole() == ClubAdminRole.LEAD) {
+            long remainingLeads = admins.stream()
+                    .filter(a -> a.getRole() == ClubAdminRole.LEAD && !a.getUser().getId().equals(targetUserId))
+                    .count();
+            if (remainingLeads == 0) {
+                throw new LogicException(BusinessErrorCode.LAST_LEAD_CANNOT_BE_REMOVED);
+            }
+        }
+
         clubAdminRepository.delete(clubAdmin);
     }
 
@@ -130,6 +141,7 @@ public class ClubAdminService {
      */
     @Transactional
     public void delegateClub(Long clubId, Long currentLeaderId, Long targetUserId, FormerLeaderAction action) {
+        getClubOrThrow(clubId);
         ClubAdmin target = clubAdminRepository.findByUserIdAndClubId(targetUserId, clubId)
                 .orElseThrow(() -> new LogicException(BusinessErrorCode.TARGET_NOT_CLUB_ADMIN));
 
@@ -147,5 +159,10 @@ public class ClubAdminService {
         } else {
             currentLeader.demoteToMember();
         }
+    }
+
+    private Club getClubOrThrow(Long clubId) {
+        return clubRepository.findById(clubId)
+                .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
     }
 }

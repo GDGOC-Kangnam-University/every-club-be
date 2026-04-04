@@ -53,7 +53,11 @@ public final class OpenApiExamples {
             }
             """;
 
-    public static final String CHECK_EMAIL_REQUEST = "\"student@kangnam.ac.kr\"";
+    public static final String CHECK_EMAIL_REQUEST = """
+            {
+              "email": "student@kangnam.ac.kr"
+            }
+            """;
 
     public static final String PRESIGNED_UPLOAD_REQUEST = """
             {

@@ -27,7 +27,10 @@ public enum BusinessErrorCode implements ErrorCode {
             "이미 LEAD 권한을 가진 관리자입니다."),
 
     TARGET_NOT_CLUB_ADMIN(HttpStatus.CONFLICT, "BUSINESS",
-            "위임 대상이 해당 동아리의 관리자가 아닙니다.");
+            "위임 대상이 해당 동아리의 관리자가 아닙니다."),
+
+    LAST_LEAD_CANNOT_BE_REMOVED(HttpStatus.CONFLICT, "BUSINESS",
+            "동아리에는 최소 한 명의 LEAD가 있어야 합니다.");
 
     private final HttpStatus status;
     private final String type;

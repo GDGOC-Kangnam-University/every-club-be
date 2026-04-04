@@ -86,6 +86,24 @@ class ClubAdminServiceTest {
     }
 
     // =====================================================================
+    // getClubAdmins
+    // =====================================================================
+
+    @Test
+    @DisplayName("존재하지 않는 clubId로 관리자 목록 조회 시 RESOURCE_NOT_FOUND 예외가 발생한다")
+    void getClubAdmins_clubNotFound_throwsNotFound() {
+        // given
+        Long clubId = 999L;
+        given(clubRepository.findById(clubId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> clubAdminService.getClubAdmins(clubId))
+                .isInstanceOf(LogicException.class)
+                .extracting("errorCode")
+                .isEqualTo(ResourceErrorCode.RESOURCE_NOT_FOUND);
+    }
+
+    // =====================================================================
     // addClubAdmin
     // =====================================================================
 
@@ -157,6 +175,7 @@ class ClubAdminServiceTest {
         Long clubId = 10L;
         Long targetUserId = 2L;
 
+        given(clubRepository.findById(clubId)).willReturn(Optional.of(club));
         given(clubAdminRepository.findByClubId(clubId)).willReturn(List.of(leadAdmin, memberAdmin));
         given(clubAdminRepository.findByUserIdAndClubId(targetUserId, clubId))
                 .willReturn(Optional.of(memberAdmin));
@@ -175,6 +194,7 @@ class ClubAdminServiceTest {
         Long clubId = 10L;
         Long targetUserId = 1L;
 
+        given(clubRepository.findById(clubId)).willReturn(Optional.of(club));
         given(clubAdminRepository.findByClubId(clubId)).willReturn(List.of(leadAdmin));
 
         // when & then
@@ -185,15 +205,50 @@ class ClubAdminServiceTest {
     }
 
     @Test
+    @DisplayName("LEAD A + MEMBER B 상태에서 LEAD A 자기 삭제 시도 시 LAST_LEAD_CANNOT_BE_REMOVED 예외가 발생한다")
+    void removeClubAdmin_lastLead_throwsLastLeadCannotBeRemoved() {
+        // given
+        Long clubId = 10L;
+        Long targetUserId = 1L; // LEAD 본인
+
+        given(clubRepository.findById(clubId)).willReturn(Optional.of(club));
+        given(clubAdminRepository.findByClubId(clubId)).willReturn(List.of(leadAdmin, memberAdmin));
+        given(clubAdminRepository.findByUserIdAndClubId(targetUserId, clubId))
+                .willReturn(Optional.of(leadAdmin));
+
+        // when & then
+        assertThatThrownBy(() -> clubAdminService.removeClubAdmin(clubId, targetUserId))
+                .isInstanceOf(LogicException.class)
+                .extracting("errorCode")
+                .isEqualTo(BusinessErrorCode.LAST_LEAD_CANNOT_BE_REMOVED);
+    }
+
+    @Test
     @DisplayName("대상이 관리자가 아닐 때 제거 시도 시 RESOURCE_NOT_FOUND 예외가 발생한다")
     void removeClubAdmin_targetNotAdmin_throwsNotFound() {
         // given
         Long clubId = 10L;
         Long targetUserId = 99L;
 
+        given(clubRepository.findById(clubId)).willReturn(Optional.of(club));
         given(clubAdminRepository.findByClubId(clubId)).willReturn(List.of(leadAdmin, memberAdmin));
         given(clubAdminRepository.findByUserIdAndClubId(targetUserId, clubId))
                 .willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> clubAdminService.removeClubAdmin(clubId, targetUserId))
+                .isInstanceOf(LogicException.class)
+                .extracting("errorCode")
+                .isEqualTo(ResourceErrorCode.RESOURCE_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 clubId로 관리자 제거 시 RESOURCE_NOT_FOUND 예외가 발생한다")
+    void removeClubAdmin_clubNotFound_throwsNotFound() {
+        // given
+        Long clubId = 999L;
+        Long targetUserId = 2L;
+        given(clubRepository.findById(clubId)).willReturn(Optional.empty());
 
         // when & then
         assertThatThrownBy(() -> clubAdminService.removeClubAdmin(clubId, targetUserId))
@@ -219,6 +274,7 @@ class ClubAdminServiceTest {
         ClubAdmin targetMemberAdmin = ClubAdmin.builder()
                 .user(member).club(club).role(ClubAdminRole.MEMBER).build();
 
+        given(clubRepository.findById(clubId)).willReturn(Optional.of(club));
         given(clubAdminRepository.findByUserIdAndClubId(targetUserId, clubId))
                 .willReturn(Optional.of(targetMemberAdmin));
         given(clubAdminRepository.findByUserIdAndClubId(currentLeaderId, clubId))
@@ -245,6 +301,7 @@ class ClubAdminServiceTest {
         ClubAdmin targetMemberAdmin = ClubAdmin.builder()
                 .user(member).club(club).role(ClubAdminRole.MEMBER).build();
 
+        given(clubRepository.findById(clubId)).willReturn(Optional.of(club));
         given(clubAdminRepository.findByUserIdAndClubId(targetUserId, clubId))
                 .willReturn(Optional.of(targetMemberAdmin));
         given(clubAdminRepository.findByUserIdAndClubId(currentLeaderId, clubId))
@@ -272,6 +329,7 @@ class ClubAdminServiceTest {
         ClubAdmin alreadyLeadAdmin = ClubAdmin.builder()
                 .user(member).club(club).role(ClubAdminRole.LEAD).build();
 
+        given(clubRepository.findById(clubId)).willReturn(Optional.of(club));
         given(clubAdminRepository.findByUserIdAndClubId(targetUserId, clubId))
                 .willReturn(Optional.of(alreadyLeadAdmin));
 
@@ -290,6 +348,7 @@ class ClubAdminServiceTest {
         Long currentLeaderId = 1L;
         Long targetUserId = 99L;
 
+        given(clubRepository.findById(clubId)).willReturn(Optional.of(club));
         given(clubAdminRepository.findByUserIdAndClubId(targetUserId, clubId))
                 .willReturn(Optional.empty());
 
@@ -298,5 +357,21 @@ class ClubAdminServiceTest {
                 .isInstanceOf(LogicException.class)
                 .extracting("errorCode")
                 .isEqualTo(BusinessErrorCode.TARGET_NOT_CLUB_ADMIN);
+    }
+
+    @Test
+    @DisplayName("존재하지 않는 clubId로 위임 시 RESOURCE_NOT_FOUND 예외가 발생한다")
+    void delegateClub_clubNotFound_throwsNotFound() {
+        // given
+        Long clubId = 999L;
+        Long currentLeaderId = 1L;
+        Long targetUserId = 2L;
+        given(clubRepository.findById(clubId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> clubAdminService.delegateClub(clubId, currentLeaderId, targetUserId, FormerLeaderAction.DEMOTE))
+                .isInstanceOf(LogicException.class)
+                .extracting("errorCode")
+                .isEqualTo(ResourceErrorCode.RESOURCE_NOT_FOUND);
     }
 }

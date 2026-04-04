@@ -76,7 +76,7 @@ public class ClubController {
     }
 
     @PostMapping("/{id}/admins/delegate")
-    @PreAuthorize("@clubAdminGuard.canLead(authentication, #id)")
+    @PreAuthorize("@clubAdminGuard.canDelegate(authentication, #id)")
     @Operation(summary = "동아리 LEAD 위임", description = "LEAD 권한을 다른 관리자(MEMBER)에게 위임합니다. formerLeaderAction으로 기존 LEAD를 MEMBER로 강등(DEMOTE)하거나 제거(REMOVE)를 선택합니다.")
     public ApiResponse<Void> delegateClub(
             @Parameter(description = "동아리 id", example = "1") @PathVariable Long id,

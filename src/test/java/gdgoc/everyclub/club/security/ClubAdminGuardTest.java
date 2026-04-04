@@ -151,4 +151,59 @@ class ClubAdminGuardTest {
         // then
         assertThat(result).isFalse();
     }
+
+    // =====================================================================
+    // canDelegate
+    // =====================================================================
+
+    @Test
+    @DisplayName("SYSTEM_ADMIN이라도 실제 club LEAD가 아니면 canDelegate가 false를 반환한다")
+    void canDelegate_systemAdmin_notClubLead_returnsFalse() {
+        // given
+        Long userId = 1L;
+        Long clubId = 10L;
+        Authentication auth = authAs(userId, "SYSTEM_ADMIN");
+        given(clubAdminRepository.existsByUserIdAndClubIdAndRole(userId, clubId, ClubAdminRole.LEAD))
+                .willReturn(false);
+
+        // when
+        boolean result = clubAdminGuard.canDelegate(auth, clubId);
+
+        // then
+        assertThat(result).isFalse();
+    }
+
+    @Test
+    @DisplayName("실제 club LEAD이면 canDelegate가 true를 반환한다")
+    void canDelegate_actualLead_returnsTrue() {
+        // given
+        Long userId = 1L;
+        Long clubId = 10L;
+        Authentication auth = authAs(userId, "GUEST");
+        given(clubAdminRepository.existsByUserIdAndClubIdAndRole(userId, clubId, ClubAdminRole.LEAD))
+                .willReturn(true);
+
+        // when
+        boolean result = clubAdminGuard.canDelegate(auth, clubId);
+
+        // then
+        assertThat(result).isTrue();
+    }
+
+    @Test
+    @DisplayName("MEMBER 역할의 관리자이면 canDelegate가 false를 반환한다")
+    void canDelegate_member_returnsFalse() {
+        // given
+        Long userId = 2L;
+        Long clubId = 10L;
+        Authentication auth = authAs(userId, "GUEST");
+        given(clubAdminRepository.existsByUserIdAndClubIdAndRole(userId, clubId, ClubAdminRole.LEAD))
+                .willReturn(false);
+
+        // when
+        boolean result = clubAdminGuard.canDelegate(auth, clubId);
+
+        // then
+        assertThat(result).isFalse();
+    }
 }
