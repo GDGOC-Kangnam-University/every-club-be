@@ -66,19 +66,21 @@ graph TD
 
 ```mermaid
 sequenceDiagram
+    autonumber
     participant Dev as Developer
     participant Script as deploy.sh
     participant CB as Cloud Build
     participant AR as Artifact Registry
     participant CR as Cloud Run
- 
+
     Dev->>Script: ./deploy.sh 실행
-    Script->>Script: .env.sh 로드
-    Script->>CB: 빌드 요청
-    CB->>AR: 이미지 Push
-    Script->>CR: 배포 요청 (환경변수 포함)
-    CR->>AR: 최신 이미지 Pull
-    CR->>Dev: 배포 완료
+    Script->>Script: .env.sh 로드 (Secret 주입)
+    Script->>CB: 소스 코드 전송 및 원격 빌드 요청
+    Note over CB: Docker Image 빌드
+    CB-->>AR: 빌드 완료 후 이미지 Push
+    Script->>CR: 서비스 배포 요청 (환경변수 포함)
+    CR-->>AR: 최신 이미지 Pull
+    CR-->>Dev: 배포 완료 및 엔드포인트 출력
 ```
 
 ---
