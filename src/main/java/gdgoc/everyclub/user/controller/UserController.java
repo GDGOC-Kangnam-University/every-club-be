@@ -2,7 +2,9 @@ package gdgoc.everyclub.user.controller;
 
 import gdgoc.everyclub.auth.EmailService;
 import gdgoc.everyclub.common.ApiResponse;
+import gdgoc.everyclub.docs.OpenApiExamples;
 import gdgoc.everyclub.security.dto.CustomUserDetails;
+import gdgoc.everyclub.user.dto.CheckEmailRequest;
 import gdgoc.everyclub.user.dto.UserCreateRequest;
 import gdgoc.everyclub.user.dto.UserResponse;
 import gdgoc.everyclub.user.dto.UserUpdateRequest;
@@ -73,7 +75,18 @@ public class UserController {
 
     @PostMapping("/check-email")
     @Operation(summary = "Check school email", description = "Check whether the given email is a school email.")
-    public ApiResponse<Boolean> checkEmail(@RequestBody String email) {
-        return ApiResponse.success(emailService.isSchoolEmail(email));
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            description = "학교 메일 여부 확인 요청 본문",
+            content = @io.swagger.v3.oas.annotations.media.Content(
+                    mediaType = "application/json",
+                    examples = @io.swagger.v3.oas.annotations.media.ExampleObject(
+                            name = "학교 메일 확인 예시",
+                            value = OpenApiExamples.CHECK_EMAIL_REQUEST
+                    )
+            )
+    )
+    public ApiResponse<Boolean> checkEmail(@RequestBody @Valid CheckEmailRequest request) {
+        return ApiResponse.success(emailService.isSchoolEmail(request.email()));
     }
 }

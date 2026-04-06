@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 public class UserResponse {
     @Schema(description = "사용자 id", example = "42")
     private final Long id;
-    @Schema(description = "이메일 주소", example = "student@university.ac.kr")
+    @Schema(description = "이메일 주소", example = "student@kangnam.ac.kr")
     private final String email;
     @Schema(description = "닉네임", example = "동아리운영자")
     private final String nickname;

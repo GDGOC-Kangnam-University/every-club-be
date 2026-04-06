@@ -40,44 +40,6 @@ public class ClubService {
     private final TagRepository tagRepository;
     private final UserService userService;
 
-    @Transactional
-    public Long createClub(ClubCreateRequest request) {
-        if (request == null) {
-            throw new NullPointerException("ClubCreateRequest cannot be null");
-        }
-
-        if (clubRepository.existsBySlug(request.slug())) {
-            throw new LogicException(BusinessErrorCode.DUPLICATE_RESOURCE);
-        }
-
-        User author = userService.getUserById(request.authorId());
-        Category category = categoryRepository.findById(request.categoryId())
-                .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
-
-        Major major = findMajorById(request.majorId());
-
-        Club club = Club.builder()
-                .name(request.name())
-                .author(author)
-                .category(category)
-                .slug(request.slug())
-                .summary(request.summary())
-                .description(request.description())
-                .logoUrl(request.logoUrl())
-                .bannerUrl(request.bannerUrl())
-                .joinFormUrl(request.joinFormUrl())
-                .recruitingStatus(request.recruitingStatus())
-                .major(major)
-                .activityCycle(request.activityCycle())
-                .hasFee(request.hasFee())
-                .isPublic(request.isPublic())
-                .build();
-
-        clubRepository.save(club);
-        resolveAndSetTags(club, request.tags());
-        return club.getId();
-    }
-
     /**
      * 공개 동아리 전체를 페이지 단위로 조회한다 (like count 포함).
      *
@@ -152,14 +114,6 @@ public class ClubService {
     public void deleteClub(Long id) {
         Club club = getClubById(id);
         clubRepository.delete(club);
-    }
-
-    /**
-     * Validates that the user exists in the system.
-     * Temporary authentication check until Spring Security is implemented.
-     */
-    public boolean validateUserExists(Long userId) {
-        return userService.existsById(userId);
     }
 
     @Transactional

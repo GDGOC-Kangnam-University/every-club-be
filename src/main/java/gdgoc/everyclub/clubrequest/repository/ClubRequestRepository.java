@@ -15,4 +15,6 @@ public interface ClubRequestRepository extends JpaRepository<ClubRequest, Long> 
 
     @EntityGraph(attributePaths = {"requestedBy", "reviewedBy"})
     Optional<ClubRequest> findByPublicId(UUID publicId);
+
+    List<ClubRequest> findByRequestedByIdOrderByCreatedAtDesc(Long userId);
 }

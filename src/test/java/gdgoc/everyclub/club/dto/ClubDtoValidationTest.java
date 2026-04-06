@@ -9,6 +9,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.util.List;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,41 +25,20 @@ class ClubDtoValidationTest {
     }
 
     @Test
-    @DisplayName("ClubCreateRequest 필수 필드 누락 시 유효성 검사에 실패한다")
-    void clubCreateRequest_ValidationFail() {
-        // given
-        ClubCreateRequest request = new ClubCreateRequest(
-                "", // name empty
-                null, // authorId null
-                null, // categoryId null
-                "", // slug empty
-                "", // summary empty
-                null, // description ok
-                null, // logoUrl ok
-                null, // bannerUrl ok
-                null, // joinFormUrl ok
-                null, // recruitingStatus null
-                null, // department ok
-                null, // activityCycle ok
-                false, // hasFee
-                true, // isPublic
-                null // tags
-        );
+    @DisplayName("ClubUpdateRequest 필수 필드 누락 시 유효성 검사에 실패한다")
+    void clubUpdateRequest_ValidationFail() {
+        ClubUpdateRequest request = ClubUpdateRequest.builder()
+                .name("")
+                .summary("")
+                .recruitingStatus(null)
+                .activityCycle("WEEKLY")
+                .hasFee(false)
+                .isPublic(true)
+                .tags(List.of())
+                .build();
 
-        // when
-        Set<ConstraintViolation<ClubCreateRequest>> violations = validator.validate(request);
+        Set<ConstraintViolation<ClubUpdateRequest>> violations = validator.validate(request);
 
-        // then
-        assertThat(violations).hasSize(7);
-        assertThat(violations).extracting(ConstraintViolation::getMessage)
-                .containsExactlyInAnyOrder(
-                        "Name must not be empty",
-                        "Author ID must not be null",
-                        "Category ID must not be null",
-                        "Slug must not be empty",
-                        "Summary must not be empty",
-                        "Recruiting status must not be null",
-                        "At least one tag is required"
-                );
+        assertThat(violations).isNotEmpty();
     }
 }

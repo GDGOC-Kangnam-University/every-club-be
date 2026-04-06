@@ -84,83 +84,6 @@ class ClubServiceTest {
     }
 
     @Test
-    @DisplayName("동아리를 생성한다")
-    void createClub() {
-        // given
-        ClubCreateRequest request = createCreateRequest("new-slug");
-        given(userService.getUserById(1L)).willReturn(author);
-        given(categoryRepository.findById(1L)).willReturn(Optional.of(category));
-        given(clubRepository.existsBySlug("new-slug")).willReturn(false);
-        given(clubRepository.save(any(Club.class))).willAnswer(invocation -> {
-            Club savedClub = invocation.getArgument(0);
-            ReflectionTestUtils.setField(savedClub, "id", 1L);
-            return savedClub;
-        });
-        given(tagRepository.findByName(any())).willReturn(java.util.Optional.empty());
-        given(tagRepository.save(any())).willAnswer(invocation -> invocation.getArgument(0));
-
-        // when
-        Long clubId = clubService.createClub(request);
-
-        // then
-        assertThat(clubId).isEqualTo(1L);
-        verify(clubRepository).save(any(Club.class));
-    }
-
-    @Test
-    @DisplayName("slug가 중복되면 동아리 생성 시 예외가 발생한다")
-    void createClub_DuplicateSlug() {
-        // given
-        ClubCreateRequest request = createCreateRequest("duplicate-slug");
-        given(clubRepository.existsBySlug("duplicate-slug")).willReturn(true);
-
-        // when & then
-        assertThatThrownBy(() -> clubService.createClub(request))
-                .isInstanceOf(LogicException.class)
-                .extracting("errorCode")
-                .isEqualTo(BusinessErrorCode.DUPLICATE_RESOURCE);
-    }
-
-    @Test
-    @DisplayName("동아리 생성 시 존재하지 않는 작성자 ID면 예외가 발생한다")
-    void createClub_AuthorNotFound() {
-        // given
-        ClubCreateRequest request = createCreateRequest("new-slug");
-        given(userService.getUserById(1L))
-                .willThrow(new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
-
-        // when & then
-        assertThatThrownBy(() -> clubService.createClub(request))
-                .isInstanceOf(LogicException.class)
-                .extracting("errorCode")
-                .isEqualTo(ResourceErrorCode.RESOURCE_NOT_FOUND);
-    }
-
-    @Test
-    @DisplayName("동아리 생성 시 존재하지 않는 카테고리 ID면 예외가 발생한다")
-    void createClub_CategoryNotFound() {
-        // given
-        ClubCreateRequest request = createCreateRequest("new-slug");
-        given(userService.getUserById(1L)).willReturn(author);
-        given(clubRepository.existsBySlug("new-slug")).willReturn(false);
-        given(categoryRepository.findById(1L)).willReturn(Optional.empty());
-
-        // when & then
-        assertThatThrownBy(() -> clubService.createClub(request))
-                .isInstanceOf(LogicException.class)
-                .extracting("errorCode")
-                .isEqualTo(ResourceErrorCode.RESOURCE_NOT_FOUND);
-    }
-
-    @Test
-    @DisplayName("동아리 생성 시 request가 null이면 NullPointerException이 발생한다")
-    void createClub_NullRequest() {
-        // when & then
-        assertThatThrownBy(() -> clubService.createClub(null))
-                .isInstanceOf(NullPointerException.class);
-    }
-
-    @Test
     @DisplayName("공개된 동아리만 전체 조회한다")
     void getClubs() {
         // given
@@ -430,21 +353,6 @@ class ClubServiceTest {
                 .hasMessage("Tag cannot be null or blank");
     }
 
-
-    private ClubCreateRequest createCreateRequest(String slug) {
-        return ClubCreateRequest.builder()
-                .name("Name")
-                .authorId(1L)
-                .categoryId(1L)
-                .slug(slug)
-                .summary("Summary")
-                .recruitingStatus(RecruitingStatus.OPEN)
-                .activityCycle("WEEKLY")
-                .hasFee(false)
-                .isPublic(true)
-                .tags(List.of("운동"))
-                .build();
-    }
 
     private ClubUpdateRequest createUpdateRequest() {
         return ClubUpdateRequest.builder()

@@ -4,18 +4,26 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import gdgoc.everyclub.club.domain.Category;
 import gdgoc.everyclub.club.domain.Club;
+import gdgoc.everyclub.club.domain.ClubAdmin;
+import gdgoc.everyclub.club.domain.ClubAdminRole;
+import gdgoc.everyclub.club.domain.Tag;
+import gdgoc.everyclub.club.domain.TagNormalizer;
 import gdgoc.everyclub.club.repository.CategoryRepository;
+import gdgoc.everyclub.club.repository.ClubAdminRepository;
 import gdgoc.everyclub.club.repository.ClubRepository;
+import gdgoc.everyclub.club.repository.TagRepository;
 import gdgoc.everyclub.clubrequest.domain.ClubRequest;
 import gdgoc.everyclub.clubrequest.domain.RequestStatus;
 import gdgoc.everyclub.clubrequest.dto.ClubRegistrationRequest;
 import gdgoc.everyclub.clubrequest.dto.ClubRegistrationResponse;
 import gdgoc.everyclub.clubrequest.dto.ClubRequestAdminResponse;
+import gdgoc.everyclub.clubrequest.dto.ClubRequestMyResponse;
 import gdgoc.everyclub.clubrequest.dto.ClubRequestPayload;
 import gdgoc.everyclub.clubrequest.dto.ClubRequestRejectRequest;
 import gdgoc.everyclub.clubrequest.repository.ClubRequestRepository;
 import gdgoc.everyclub.college.domain.Major;
 import gdgoc.everyclub.college.repository.MajorRepository;
+import gdgoc.everyclub.common.exception.AccessErrorCode;
 import gdgoc.everyclub.common.exception.BusinessErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
@@ -27,6 +35,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -38,8 +47,10 @@ public class ClubRequestService {
 
     private final ClubRequestRepository clubRequestRepository;
     private final ClubRepository clubRepository;
+    private final ClubAdminRepository clubAdminRepository;
     private final CategoryRepository categoryRepository;
     private final MajorRepository majorRepository;
+    private final TagRepository tagRepository;
     private final UserService userService;
     private final ObjectMapper objectMapper;
 
@@ -130,9 +141,61 @@ public class ClubRequestService {
 
         clubRepository.save(club);
 
+        if (payload.tags() != null && !payload.tags().isEmpty()) {
+            resolveAndSetTags(club, payload.tags());
+        }
+
+        ClubAdmin clubAdmin = ClubAdmin.builder()
+                .user(clubRequest.getRequestedBy())
+                .club(club)
+                .role(ClubAdminRole.LEAD)
+                .build();
+        clubAdminRepository.save(clubAdmin);
+
         User admin = userService.getUserById(adminUserId);
         clubRequest.approve(admin);
 
+        return ClubRegistrationResponse.from(clubRequest);
+    }
+
+    public List<ClubRequestMyResponse> getMyRequests(Long userId) {
+        return clubRequestRepository.findByRequestedByIdOrderByCreatedAtDesc(userId).stream()
+                .map(cr -> ClubRequestMyResponse.from(cr, deserializePayload(cr.getPayload()).name()))
+                .toList();
+    }
+
+    @Transactional
+    public ClubRegistrationResponse resubmitClubRequest(UUID publicId, Long userId, ClubRegistrationRequest request) {
+        ClubRequest clubRequest = clubRequestRepository.findByPublicId(publicId)
+                .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
+
+        if (!clubRequest.getRequestedBy().getId().equals(userId)) {
+            throw new LogicException(AccessErrorCode.ACCESS_DENIED);
+        }
+
+        if (clubRequest.getStatus() != RequestStatus.REJECTED) {
+            throw new LogicException(BusinessErrorCode.STATE_CONFLICT);
+        }
+
+        // slug가 변경된 경우에만 중복 확인
+        ClubRequestPayload oldPayload = deserializePayload(clubRequest.getPayload());
+        if (!oldPayload.slug().equals(request.slug()) && clubRepository.existsBySlug(request.slug())) {
+            throw new LogicException(BusinessErrorCode.DUPLICATE_RESOURCE);
+        }
+
+        Category category = categoryRepository.findById(request.categoryId())
+                .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
+
+        if (DEPARTMENT_CLUB_CATEGORY.equals(category.getName()) && request.majorId() == null) {
+            throw new LogicException(ValidationErrorCode.MAJOR_REQUIRED_FOR_DEPARTMENT_CLUB);
+        }
+
+        if (request.majorId() != null) {
+            majorRepository.findById(request.majorId())
+                    .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
+        }
+
+        clubRequest.resubmit(serializePayload(request));
         return ClubRegistrationResponse.from(clubRequest);
     }
 
@@ -151,6 +214,21 @@ public class ClubRequestService {
         return ClubRegistrationResponse.from(clubRequest);
     }
 
+    private void resolveAndSetTags(Club club, List<String> rawTagNames) {
+        List<String> normalized = rawTagNames.stream()
+                .map(TagNormalizer::normalize)
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        club.clearTags();
+        for (String name : normalized) {
+            Tag tag = tagRepository.findByName(name)
+                    .orElseGet(() -> tagRepository.save(Tag.of(name)));
+            club.addTag(tag);
+        }
+    }
+
     private String serializePayload(ClubRegistrationRequest request) {
         ClubRequestPayload payload = ClubRequestPayload.builder()
                 .name(request.name())
@@ -166,7 +244,7 @@ public class ClubRequestService {
                 .activityCycle(request.activityCycle())
                 .hasFee(request.hasFee())
                 .isPublic(request.isPublic())
-                .tagIds(request.tagIds())
+                .tags(request.tags())
                 .build();
 
         try {
