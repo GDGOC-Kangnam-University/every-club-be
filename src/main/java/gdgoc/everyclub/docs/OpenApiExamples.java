@@ -47,7 +47,7 @@ public final class OpenApiExamples {
             {
               "nickname": "동아리운영자",
               "department": "컴퓨터공학과",
-              "studentId": "20241234",
+              "studentId": "202401234",
               "phoneNumber": "010-1234-5678",
               "bio": "학생 커뮤니티를 만드는 일에 관심이 있습니다."
             }
@@ -63,6 +63,39 @@ public final class OpenApiExamples {
             {
               "fileName": "club-banner.png",
               "contentType": "image/png"
+            }
+            """;
+
+    public static final String SIGNUP_SEND_OTP_REQUEST = """
+            {
+              "email": "student@kangnam.ac.kr"
+            }
+            """;
+
+    public static final String SIGNUP_VERIFY_OTP_REQUEST = """
+            {
+              "email": "student@kangnam.ac.kr",
+              "code": "123456"
+            }
+            """;
+
+    public static final String LOGIN_REQUEST = """
+            {
+              "email": "student@kangnam.ac.kr",
+              "password": "P@ssw0rd123!"
+            }
+            """;
+
+    public static final String ADD_CLUB_ADMIN_REQUEST = """
+            {
+              "userId": 42
+            }
+            """;
+
+    public static final String DELEGATE_CLUB_ADMIN_REQUEST = """
+            {
+              "targetUserId": 42,
+              "formerLeaderAction": "DEMOTE"
             }
             """;
 
