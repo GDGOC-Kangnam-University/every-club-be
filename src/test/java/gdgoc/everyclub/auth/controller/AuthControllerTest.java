@@ -1,10 +1,18 @@
 package gdgoc.everyclub.auth.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import gdgoc.everyclub.auth.dto.SendOtpRequest;
-import gdgoc.everyclub.auth.dto.VerifyOtpRequest;
-import gdgoc.everyclub.auth.service.OtpService;
+import gdgoc.everyclub.auth.dto.LoginRequest;
+import gdgoc.everyclub.auth.dto.SignupSendOtpRequest;
+import gdgoc.everyclub.auth.dto.SignupTokenResponse;
+import gdgoc.everyclub.auth.dto.SignupVerifyOtpRequest;
 import gdgoc.everyclub.auth.service.RateLimiterService;
+import gdgoc.everyclub.auth.service.SignupService;
+import gdgoc.everyclub.common.exception.AuthErrorCode;
+import gdgoc.everyclub.common.exception.BusinessErrorCode;
+import gdgoc.everyclub.common.exception.LogicException;
+import gdgoc.everyclub.common.exception.ValidationErrorCode;
+import gdgoc.everyclub.security.dto.TokenInfo;
+import gdgoc.everyclub.security.jwt.JwtProvider;
 import gdgoc.everyclub.user.domain.User;
 import gdgoc.everyclub.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,8 +21,9 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -23,6 +32,7 @@ import java.util.Optional;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -39,154 +49,178 @@ class AuthControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
-    private OtpService otpService;
+    @MockitoBean
+    private SignupService signupService;
 
-    @MockBean
+    @MockitoBean
     private RateLimiterService rateLimiterService;
 
-    @MockBean
+    @MockitoBean
     private UserRepository userRepository;
 
-    private User testUser;
+    @MockitoBean
+    private PasswordEncoder passwordEncoder;
+
+    @MockitoBean
+    private JwtProvider jwtProvider;
 
     @BeforeEach
     void setUp() {
-        testUser = User.builder()
-                .email("test@example.com")
-                .nickname("Test User")
-                .build();
-
-        // Default: allow all rate limiter requests
-        when(rateLimiterService.tryAcquire(anyString())).thenReturn(true);
         doNothing().when(rateLimiterService).acquireOrThrow(anyString());
     }
 
+    // ── signup/send-otp ────────────────────────────────────────────────
+
     @Test
-    @DisplayName("POST /send-otp returns success when user exists")
-    void sendOtp_UserExists_ReturnsSuccess() throws Exception {
-        // given
-        SendOtpRequest request = new SendOtpRequest();
-        request.setEmail("test@example.com");
+    @DisplayName("POST /signup/send-otp 성공")
+    void signupSendOtp_Success() throws Exception {
+        doNothing().when(signupService).sendOtp(anyString());
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(otpService.generateOtp()).thenReturn("ABC123");
-        doNothing().when(otpService).saveVerification(any(), anyString());
-        doNothing().when(otpService).sendOtpEmail(anyString(), anyString());
-
-        // when/then
-        mockMvc.perform(post("/api/v1/auth/send-otp")
+        mockMvc.perform(post("/api/v1/auth/signup/send-otp")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(new SignupSendOtpRequest("student@kangnam.ac.kr"))))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.message").exists());
+                .andExpect(jsonPath("$.status").value("SUCCESS"));
     }
 
     @Test
-    @DisplayName("POST /send-otp returns success regardless of user existence (prevents enumeration)")
-    void sendOtp_UserNotFound_ReturnsSuccess() throws Exception {
-        // given
-        SendOtpRequest request = new SendOtpRequest();
-        request.setEmail("nonexistent@example.com");
-
-        when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
-
-        // when/then - Now returns success=true to prevent user enumeration
-        mockMvc.perform(post("/api/v1/auth/send-otp")
+    @DisplayName("POST /signup/send-otp - 이메일 형식 오류 → 400")
+    void signupSendOtp_InvalidEmail() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/signup/send-otp")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.success").value(true));
-    }
-
-    @Test
-    @DisplayName("POST /send-otp returns error with invalid email format")
-    void sendOtp_InvalidEmail_ReturnsError() throws Exception {
-        // given
-        SendOtpRequest request = new SendOtpRequest();
-        request.setEmail("invalid-email");
-
-        // when/then
-        mockMvc.perform(post("/api/v1/auth/send-otp")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(new SignupSendOtpRequest("not-an-email"))))
                 .andExpect(status().isBadRequest());
     }
 
     @Test
-    @DisplayName("POST /verify returns success with valid code")
-    void verify_ValidCode_ReturnsSuccess() throws Exception {
-        // given
-        VerifyOtpRequest request = new VerifyOtpRequest();
-        request.setEmail("test@example.com");
-        request.setCode("ABC123");
+    @DisplayName("POST /signup/send-otp - 학교 이메일 아님 → 400")
+    void signupSendOtp_NotSchoolEmail() throws Exception {
+        doThrow(new LogicException(ValidationErrorCode.INVALID_EMAIL_DOMAIN))
+                .when(signupService).sendOtp(anyString());
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(otpService.verifyOtp(testUser.getId(), "ABC123")).thenReturn(true);
-        when(userRepository.save(any(User.class))).thenReturn(testUser);
-
-        // when/then
-        mockMvc.perform(post("/api/v1/auth/verify")
+        mockMvc.perform(post("/api/v1/auth/signup/send-otp")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.success").value(true));
+                        .content(objectMapper.writeValueAsString(new SignupSendOtpRequest("user@gmail.com"))))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
-    @DisplayName("POST /verify returns error with invalid code")
-    void verify_InvalidCode_ReturnsError() throws Exception {
-        // given
-        VerifyOtpRequest request = new VerifyOtpRequest();
-        request.setEmail("test@example.com");
-        request.setCode("WRONG");
+    @DisplayName("POST /signup/send-otp - 이미 가입된 이메일 → 409")
+    void signupSendOtp_AlreadyRegistered() throws Exception {
+        doThrow(new LogicException(BusinessErrorCode.DUPLICATE_RESOURCE))
+                .when(signupService).sendOtp(anyString());
 
-        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
-        when(otpService.verifyOtp(testUser.getId(), "WRONG")).thenReturn(false);
-
-        // when/then
-        mockMvc.perform(post("/api/v1/auth/verify")
+        mockMvc.perform(post("/api/v1/auth/signup/send-otp")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(new SignupSendOtpRequest("existing@kangnam.ac.kr"))))
+                .andExpect(status().isConflict());
+    }
+
+    // ── signup/verify-otp ─────────────────────────────────────────────
+
+    @Test
+    @DisplayName("POST /signup/verify-otp 성공 → signupToken 반환")
+    void signupVerifyOtp_Success() throws Exception {
+        when(signupService.verifyOtp(anyString(), anyString()))
+                .thenReturn(new SignupTokenResponse("test-token", 600));
+
+        mockMvc.perform(post("/api/v1/auth/signup/verify-otp")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new SignupVerifyOtpRequest("student@kangnam.ac.kr", "ABC123"))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.success").value(false));
+                .andExpect(jsonPath("$.data.signupToken").value("test-token"))
+                .andExpect(jsonPath("$.data.expiresIn").value(600));
     }
 
     @Test
-    @DisplayName("POST /verify returns error when user not found")
-    void verify_UserNotFound_ReturnsError() throws Exception {
-        // given
-        VerifyOtpRequest request = new VerifyOtpRequest();
-        request.setEmail("nonexistent@example.com");
-        request.setCode("ABC123");
+    @DisplayName("POST /signup/verify-otp - OTP 불일치 → 401")
+    void signupVerifyOtp_InvalidOtp() throws Exception {
+        doThrow(new LogicException(AuthErrorCode.INVALID_OTP))
+                .when(signupService).verifyOtp(anyString(), anyString());
 
-        when(userRepository.findByEmail("nonexistent@example.com")).thenReturn(Optional.empty());
-
-        // when/then
-        mockMvc.perform(post("/api/v1/auth/verify")
+        mockMvc.perform(post("/api/v1/auth/signup/verify-otp")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("SUCCESS"))
-                .andExpect(jsonPath("$.data.success").value(false));
+                        .content(objectMapper.writeValueAsString(
+                                new SignupVerifyOtpRequest("student@kangnam.ac.kr", "WRONG"))))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    @DisplayName("POST /verify returns error with blank code")
-    void verify_BlankCode_ReturnsError() throws Exception {
-        // given
-        VerifyOtpRequest request = new VerifyOtpRequest();
-        request.setEmail("test@example.com");
-        request.setCode("");
-
-        // when/then
-        mockMvc.perform(post("/api/v1/auth/verify")
+    @DisplayName("POST /signup/verify-otp - code 누락 → 400")
+    void signupVerifyOtp_BlankCode() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/signup/verify-otp")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
+                        .content(objectMapper.writeValueAsString(
+                                new SignupVerifyOtpRequest("student@kangnam.ac.kr", ""))))
+                .andExpect(status().isBadRequest());
+    }
+
+    // ── login ─────────────────────────────────────────────────────────
+
+    @Test
+    @DisplayName("POST /login 성공 → JWT 반환")
+    void login_Success() throws Exception {
+        User user = User.builder()
+                .email("student@kangnam.ac.kr")
+                .passwordHash("$2a$10$hashed")
+                .nickname("테스터")
+                .build();
+
+        when(userRepository.findByEmail("student@kangnam.ac.kr")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("password123!", "$2a$10$hashed")).thenReturn(true);
+        when(jwtProvider.generateToken(any())).thenReturn(
+                TokenInfo.builder().grantType("Bearer").accessToken("jwt.token.here").expiresIn(3600L).build());
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new LoginRequest("student@kangnam.ac.kr", "password123!"))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.data.accessToken").value("jwt.token.here"))
+                .andExpect(jsonPath("$.data.grantType").value("Bearer"));
+    }
+
+    @Test
+    @DisplayName("POST /login - 존재하지 않는 이메일 → 401")
+    void login_UserNotFound() throws Exception {
+        when(userRepository.findByEmail(anyString())).thenReturn(Optional.empty());
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new LoginRequest("nobody@kangnam.ac.kr", "password123!"))))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("POST /login - 비밀번호 불일치 → 401")
+    void login_WrongPassword() throws Exception {
+        User user = User.builder()
+                .email("student@kangnam.ac.kr")
+                .passwordHash("$2a$10$hashed")
+                .nickname("테스터")
+                .build();
+
+        when(userRepository.findByEmail("student@kangnam.ac.kr")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(anyString(), anyString())).thenReturn(false);
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new LoginRequest("student@kangnam.ac.kr", "wrongpassword"))))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("POST /login - 이메일 형식 오류 → 400")
+    void login_InvalidEmail() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(
+                                new LoginRequest("not-an-email", "password123!"))))
                 .andExpect(status().isBadRequest());
     }
 }

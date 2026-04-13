@@ -18,7 +18,19 @@ public enum BusinessErrorCode implements ErrorCode {
             "이미 처리된 요청입니다."),
 
     STATE_CONFLICT(HttpStatus.CONFLICT, "BUSINESS",
-            "현재 상태에서 수행할 수 없는 작업입니다.");
+            "현재 상태에서 수행할 수 없는 작업입니다."),
+
+    LAST_ADMIN_CANNOT_BE_REMOVED(HttpStatus.CONFLICT, "BUSINESS",
+            "동아리에는 최소 한 명의 관리자가 있어야 합니다."),
+
+    ALREADY_LEAD(HttpStatus.CONFLICT, "BUSINESS",
+            "이미 LEAD 권한을 가진 관리자입니다."),
+
+    TARGET_NOT_CLUB_ADMIN(HttpStatus.CONFLICT, "BUSINESS",
+            "위임 대상이 해당 동아리의 관리자가 아닙니다."),
+
+    LAST_LEAD_CANNOT_BE_REMOVED(HttpStatus.CONFLICT, "BUSINESS",
+            "동아리에는 최소 한 명의 LEAD가 있어야 합니다.");
 
     private final HttpStatus status;
     private final String type;

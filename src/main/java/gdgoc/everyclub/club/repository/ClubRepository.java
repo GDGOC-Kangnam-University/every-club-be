@@ -1,10 +1,8 @@
 package gdgoc.everyclub.club.repository;
 
 import gdgoc.everyclub.club.domain.Club;
-import gdgoc.everyclub.club.dto.ClubSummaryResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -27,16 +25,6 @@ public interface ClubRepository extends JpaRepository<Club, Long>, JpaSpecificat
 
     @EntityGraph(attributePaths = {"author", "category"})
     Page<Club> findAllByIsPublicTrue(Pageable pageable);
-
-    @EntityGraph(attributePaths = {"author", "category"})
-    @Query("SELECT c FROM Club c WHERE c.isPublic = true AND LOWER(c.tags) LIKE LOWER(CONCAT('%;', :tag, ';%'))")
-    Page<Club> findByTagsContaining(@Param("tag") String tag, Pageable pageable);
-
-    @Query("SELECT new gdgoc.everyclub.club.dto.ClubSummaryResponse(c, CAST(COUNT(u) AS int)) " +
-           "FROM Club c LEFT JOIN c.likedByUsers u " +
-           "WHERE c.isPublic = true " +
-           "GROUP BY c.id, c.slug, c.name, c.summary, c.logoUrl, c.recruitingStatus, c.activityCycle, c.hasFee, c.category, c.author, c.createdAt, c.updatedAt")
-    Page<ClubSummaryResponse> findAllPublicWithLikeCounts(Pageable pageable);
 
     @Query("SELECT COUNT(u) > 0 FROM User u JOIN u.likedClubs c WHERE u.id = :userId AND c.id = :clubId")
     boolean existsLikeByUserIdAndClubId(@Param("userId") Long userId, @Param("clubId") Long clubId);
@@ -106,9 +94,19 @@ public interface ClubRepository extends JpaRepository<Club, Long>, JpaSpecificat
 
     // ── Batch-fetch entities with associations (used after ID-only queries) ───
 
-    @EntityGraph(attributePaths = {"author", "category"})
-    @Query("SELECT c FROM Club c WHERE c.id IN :ids")
+    /**
+     * ID 목록으로 Club을 배치 조회한다. author, category, clubTags(→tag)를 EntityGraph로 함께 로딩해
+     * N+1을 방지한다. IN 쿼리는 순서를 보장하지 않으므로 호출자가 Map을 통해 순서를 복원해야 한다.
+     */
+    @EntityGraph(attributePaths = {"author", "category", "clubTags.tag"})
+    @Query("SELECT DISTINCT c FROM Club c WHERE c.id IN :ids")
     List<Club> findAllByIdInWithGraph(@Param("ids") List<Long> ids);
+
+    // ── Liked clubs by user ───────────────────────────────────────────────────
+
+    @EntityGraph(attributePaths = {"author", "category", "clubTags.tag"})
+    @Query("SELECT c FROM Club c JOIN c.likedByUsers u WHERE u.id = :userId AND c.isPublic = true")
+    Page<Club> findLikedClubsByUserId(@Param("userId") Long userId, Pageable pageable);
 
     // ── Filter: like count batch (used after Specification page query) ────────
 

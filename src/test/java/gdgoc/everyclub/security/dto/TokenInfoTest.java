@@ -13,13 +13,11 @@ class TokenInfoTest {
         TokenInfo tokenInfo = TokenInfo.builder()
                 .grantType("Bearer")
                 .accessToken("test-access-token")
-                .refreshToken("test-refresh-token")
                 .expiresIn(1800L)
                 .build();
 
         assertThat(tokenInfo.getGrantType()).isEqualTo("Bearer");
         assertThat(tokenInfo.getAccessToken()).isEqualTo("test-access-token");
-        assertThat(tokenInfo.getRefreshToken()).isEqualTo("test-refresh-token");
         assertThat(tokenInfo.getExpiresIn()).isEqualTo(1800L);
     }
 
@@ -30,7 +28,6 @@ class TokenInfoTest {
 
         assertThat(tokenInfo.getGrantType()).isNull();
         assertThat(tokenInfo.getAccessToken()).isNull();
-        assertThat(tokenInfo.getRefreshToken()).isNull();
         assertThat(tokenInfo.getExpiresIn()).isNull();
     }
 }

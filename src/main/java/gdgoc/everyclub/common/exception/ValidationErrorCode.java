@@ -21,7 +21,10 @@ public enum ValidationErrorCode implements ErrorCode {
             "URL 형식이 올바르지 않습니다."),
 
     MAJOR_REQUIRED_FOR_DEPARTMENT_CLUB(HttpStatus.BAD_REQUEST, "VALIDATION",
-            "학과동아리의 경우 소속 학과(majorId)는 필수입니다.");
+            "학과동아리의 경우 소속 학과(majorId)는 필수입니다."),
+
+    PASSWORD_MISMATCH(HttpStatus.BAD_REQUEST, "VALIDATION",
+            "비밀번호와 비밀번호 확인이 일치하지 않습니다.");
 
     private final HttpStatus status;
     private final String type;

@@ -5,13 +5,18 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.lang.annotation.Annotation;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.groups.Tuple.tuple;
 
 class ClubRegistrationRequestValidationTest {
 
@@ -24,9 +29,8 @@ class ClubRegistrationRequestValidationTest {
     }
 
     @Test
-    @DisplayName("필수값 전부 누락 시 violation 개수가 일치한다")
+    @DisplayName("필수값 전부 누락 시 expected constraint가 발생한다")
     void allRequiredFieldsMissing_violationsMatch() {
-        // given: name, slug, summary = blank / categoryId, recruitingStatus = null
         ClubRegistrationRequest request = ClubRegistrationRequest.builder()
                 .name("")
                 .categoryId(null)
@@ -37,25 +41,25 @@ class ClubRegistrationRequestValidationTest {
                 .isPublic(true)
                 .build();
 
-        // when
         Set<ConstraintViolation<ClubRegistrationRequest>> violations = validator.validate(request);
 
-        // then — @NotBlank(name, slug, summary) + @NotNull(categoryId, recruitingStatus) = 5개
-        assertThat(violations).hasSize(5);
-        assertThat(violations).extracting(ConstraintViolation::getMessage)
+        assertThat(violations)
+                .hasSize(5)
+                .extracting(
+                        violation -> violation.getPropertyPath().toString(),
+                        violation -> violation.getConstraintDescriptor().getAnnotation().annotationType())
                 .containsExactlyInAnyOrder(
-                        "동아리명은 필수입니다",
-                        "카테고리 ID는 필수입니다",
-                        "슬러그는 필수입니다",
-                        "한 줄 소개는 필수입니다",
-                        "모집 상태는 필수입니다"
+                        tuple("name", NotBlank.class),
+                        tuple("categoryId", NotNull.class),
+                        tuple("slug", NotBlank.class),
+                        tuple("summary", NotBlank.class),
+                        tuple("recruitingStatus", NotNull.class)
                 );
     }
 
     @Test
-    @DisplayName("정상 입력 → violation 0개")
+    @DisplayName("정상 입력 시 violation이 없다")
     void validInput_noViolations() {
-        // given
         ClubRegistrationRequest request = ClubRegistrationRequest.builder()
                 .name("테스트동아리")
                 .categoryId(1L)
@@ -66,17 +70,14 @@ class ClubRegistrationRequestValidationTest {
                 .isPublic(true)
                 .build();
 
-        // when
         Set<ConstraintViolation<ClubRegistrationRequest>> violations = validator.validate(request);
 
-        // then
         assertThat(violations).isEmpty();
     }
 
     @Test
-    @DisplayName("동아리명 21자 초과 → violation")
+    @DisplayName("동아리명 21자 초과 시 Size violation이 발생한다")
     void nameTooLong_violation() {
-        // given
         ClubRegistrationRequest request = ClubRegistrationRequest.builder()
                 .name("가".repeat(21))
                 .categoryId(1L)
@@ -87,19 +88,14 @@ class ClubRegistrationRequestValidationTest {
                 .isPublic(true)
                 .build();
 
-        // when
         Set<ConstraintViolation<ClubRegistrationRequest>> violations = validator.validate(request);
 
-        // then
-        assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getMessage())
-                .isEqualTo("동아리명은 20자 이하여야 합니다");
+        assertSingleViolation(violations, "name", Size.class);
     }
 
     @Test
-    @DisplayName("slug 101자 초과 → violation")
+    @DisplayName("slug 101자 초과 시 Size violation이 발생한다")
     void slugTooLong_violation() {
-        // given
         ClubRegistrationRequest request = ClubRegistrationRequest.builder()
                 .name("테스트동아리")
                 .categoryId(1L)
@@ -110,12 +106,19 @@ class ClubRegistrationRequestValidationTest {
                 .isPublic(true)
                 .build();
 
-        // when
         Set<ConstraintViolation<ClubRegistrationRequest>> violations = validator.validate(request);
 
-        // then
-        assertThat(violations).hasSize(1);
-        assertThat(violations.iterator().next().getMessage())
-                .isEqualTo("슬러그는 100자 이하여야 합니다");
+        assertSingleViolation(violations, "slug", Size.class);
+    }
+
+    private void assertSingleViolation(Set<ConstraintViolation<ClubRegistrationRequest>> violations,
+                                       String property,
+                                       Class<? extends Annotation> annotationType) {
+        assertThat(violations)
+                .hasSize(1)
+                .extracting(
+                        violation -> violation.getPropertyPath().toString(),
+                        violation -> violation.getConstraintDescriptor().getAnnotation().annotationType())
+                .containsExactly(tuple(property, annotationType));
     }
 }

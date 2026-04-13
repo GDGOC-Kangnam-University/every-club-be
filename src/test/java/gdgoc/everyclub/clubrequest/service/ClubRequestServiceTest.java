@@ -6,7 +6,9 @@ import gdgoc.everyclub.club.domain.Category;
 import gdgoc.everyclub.club.domain.Club;
 import gdgoc.everyclub.club.domain.RecruitingStatus;
 import gdgoc.everyclub.club.repository.CategoryRepository;
+import gdgoc.everyclub.club.repository.ClubAdminRepository;
 import gdgoc.everyclub.club.repository.ClubRepository;
+import gdgoc.everyclub.club.repository.TagRepository;
 import gdgoc.everyclub.clubrequest.domain.ClubRequest;
 import gdgoc.everyclub.clubrequest.domain.RequestStatus;
 import gdgoc.everyclub.clubrequest.dto.ClubRegistrationRequest;
@@ -56,6 +58,9 @@ class ClubRequestServiceTest {
     private ClubRepository clubRepository;
 
     @Mock
+    private ClubAdminRepository clubAdminRepository;
+
+    @Mock
     private CategoryRepository categoryRepository;
 
     @Mock
@@ -63,6 +68,9 @@ class ClubRequestServiceTest {
 
     @Mock
     private UserService userService;
+
+    @Mock
+    private TagRepository tagRepository;
 
     @Spy
     private ObjectMapper objectMapper = new ObjectMapper();
@@ -556,6 +564,7 @@ class ClubRequestServiceTest {
                 .activityCycle("매주")
                 .hasFee(false)
                 .isPublic(true)
+                .tags(List.of("개발", "스터디"))
                 .build();
     }
 

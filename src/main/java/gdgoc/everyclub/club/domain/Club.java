@@ -10,17 +10,14 @@ import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
 @Entity
-@Table(name = "club", indexes = {
-        @Index(name = "idx_club_tags", columnList = "tags")
-})
+@Table(name = "club")
 @Getter
-@Builder
+@Builder(buildMethodName = "autoBuild")
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLRestriction("deleted_at IS NULL")
@@ -76,10 +73,13 @@ public class Club {
     @ManyToMany(mappedBy = "likedClubs")
     private Set<User> likedByUsers = new LinkedHashSet<>();
 
-    @Convert(converter = TagListConverter.class)
-    @Column(columnDefinition = "TEXT")
+    /**
+     * 태그 매핑 컬렉션. {@link ClubTag}가 소유 측(owning side).
+     * 직접 수정하지 말고 {@link #addTag(Tag)}/{@link #clearTags()} 도메인 메서드를 사용할 것.
+     */
+    @OneToMany(mappedBy = "club", cascade = CascadeType.ALL, orphanRemoval = true)
     @Builder.Default
-    private List<String> tags = new ArrayList<>();
+    private Set<ClubTag> clubTags = new LinkedHashSet<>();
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", nullable = false)
@@ -100,28 +100,37 @@ public class Club {
     @SuppressWarnings("unused")
     private LocalDateTime deletedAt;
 
-    // Legacy constructor for backward compatibility if needed, but we should update usages
-    public Club(String name, String summary, User author, Category category, String slug) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Name cannot be null or blank");
+    public static class ClubBuilder {
+        /** name null/blank 검증을 빌더 build() 시점에 수행한다. */
+        public Club build() {
+            if (name == null || name.isBlank()) {
+                throw new IllegalArgumentException("Name cannot be null or blank");
+            }
+            return autoBuild();
         }
-        this.name = name;
-        this.summary = summary;
-        this.author = author;
-        this.category = category;
-        this.slug = slug;
-        this.recruitingStatus = RecruitingStatus.OPEN;
-        this.hasFee = false;
-        this.isPublic = false;
-        this.likedByUsers = new LinkedHashSet<>();
-        this.tags = new ArrayList<>();
+    }
+
+    /** 태그 이름 목록 반환. 응답 DTO 생성 시 사용. */
+    public List<String> getTagNames() {
+        return clubTags.stream()
+                .map(ct -> ct.getTag().getName())
+                .toList();
+    }
+
+    /** 기존 태그 매핑을 전부 제거한다. orphanRemoval에 의해 ClubTag 레코드가 DELETE된다. */
+    public void clearTags() {
+        this.clubTags.clear();
+    }
+
+    /** 정규화된 Tag 엔티티를 이 동아리에 매핑한다. */
+    public void addTag(Tag tag) {
+        this.clubTags.add(ClubTag.of(this, tag));
     }
 
     public void update(String name, String summary, String description,
                        String logoUrl, String bannerUrl, String joinFormUrl,
                        RecruitingStatus recruitingStatus, Major major,
-                       String activityCycle, boolean hasFee, boolean isPublic,
-                       List<String> tags) {
+                       String activityCycle, boolean hasFee, boolean isPublic) {
         this.name = name;
         this.summary = summary;
         this.description = description;
@@ -133,6 +142,5 @@ public class Club {
         this.activityCycle = activityCycle;
         this.hasFee = hasFee;
         this.isPublic = isPublic;
-        this.tags = tags != null ? tags : new ArrayList<>();
     }
 }

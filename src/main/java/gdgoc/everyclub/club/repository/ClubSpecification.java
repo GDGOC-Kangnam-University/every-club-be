@@ -1,9 +1,13 @@
 package gdgoc.everyclub.club.repository;
 
 import gdgoc.everyclub.club.domain.Club;
+import gdgoc.everyclub.club.domain.ClubTag;
+import gdgoc.everyclub.club.domain.TagNormalizer;
 import gdgoc.everyclub.college.domain.Major;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.List;
@@ -61,19 +65,31 @@ public class ClubSpecification {
     }
 
     /**
-     * 태그 필터 (대소문자 무시, exact match).
+     * 태그 필터 — Tag/ClubTag 조인 기반 정확 매칭.
      *
-     * <p>태그 저장 형식이 {@code %;tag;%}이므로 LIKE 패턴으로 정확히 일치하는 태그만 조회한다.
-     * 입력값의 {@code ;} 문자는 구분자와 충돌하므로 제거 후 처리한다.
+     * <p>입력값을 {@link TagNormalizer#normalize(String)}로 정규화한 뒤,
+     * {@code club_tag JOIN tag} EXISTS 서브쿼리로 해당 태그를 가진 동아리만 조회한다.
+     * LIKE 기반 TEXT 검색을 제거하고 관계형 조인 매칭으로 교체.
      *
-     * @param tag null 또는 빈 문자열이면 null 반환 (조건 무시)
+     * <p>페이지네이션 count 쿼리에서 JOIN으로 인한 카운트 오염을 방지하기 위해
+     * EXISTS 서브쿼리를 사용한다.
+     *
+     * @param tag null 또는 정규화 후 빈 문자열이면 null 반환 (조건 무시)
      */
     public static Specification<Club> hasTag(String tag) {
         if (tag == null || tag.isBlank()) return null;
-        String sanitized = tag.replace(";", "").strip().toLowerCase();
-        if (sanitized.isBlank()) return null;
-        return (root, query, cb) ->
-                cb.like(cb.lower(root.get("tags")), "%;" + sanitized + ";%");
+        String normalized = TagNormalizer.normalize(tag);
+        if (normalized == null) return null;
+        return (root, query, cb) -> {
+            Subquery<Long> sub = query.subquery(Long.class);
+            Root<ClubTag> ctRoot = sub.from(ClubTag.class);
+            sub.select(ctRoot.get("id"))
+               .where(
+                   cb.equal(ctRoot.get("club"), root),
+                   cb.equal(ctRoot.get("tag").get("name"), normalized)
+               );
+            return cb.exists(sub);
+        };
     }
 
     /**
