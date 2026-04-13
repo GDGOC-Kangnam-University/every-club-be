@@ -20,7 +20,7 @@ public class UserResponse {
     private final String profileImageUrl;
     @Schema(description = "학과명", nullable = true, example = "컴퓨터공학과")
     private final String department;
-    @Schema(description = "학번", nullable = true, example = "20241234")
+    @Schema(description = "학번", nullable = true, example = "202401234")
     private final String studentId;
     @Schema(description = "전화번호", nullable = true, example = "010-1234-5678")
     private final String phoneNumber;

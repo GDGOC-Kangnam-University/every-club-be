@@ -110,7 +110,7 @@ class UserIntegrationTest {
     @DisplayName("POST /api/users/signup - signupToken으로 회원가입 성공")
     void signup_Integration() throws Exception {
         String token = prepareSignupToken("newuser@kangnam.ac.kr");
-        UserCreateRequest request = new UserCreateRequest(token, "신규유저", "20241234", "Password1!", "Password1!");
+        UserCreateRequest request = new UserCreateRequest(token, "신규유저", "202401234", "Password1!", "Password1!");
 
         mockMvc.perform(post("/api/users/signup")
                         .contentType(MediaType.APPLICATION_JSON)

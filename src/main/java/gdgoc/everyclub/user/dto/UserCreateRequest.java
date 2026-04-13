@@ -11,7 +11,7 @@ public record UserCreateRequest(
         @Size(max = 10, message = "닉네임은 10자 이하여야 합니다.")
         String nickname,
 
-        @Size(max = 15, message = "학번은 15자 이하여야 합니다.")
+        @Size(max = 9, message = "학번은 9자 이하여야 합니다.")
         String studentId,
 
         @NotBlank(message = "비밀번호를 입력해주세요.")

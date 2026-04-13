@@ -13,8 +13,6 @@ import gdgoc.everyclub.common.ApiResponse;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ValidationErrorCode;
 import gdgoc.everyclub.security.dto.CustomUserDetails;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.Positive;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -59,7 +57,7 @@ public class ClubController implements ClubApiSpec {
     @PreAuthorize("@clubAdminGuard.canLead(authentication, #id)")
     public ApiResponse<Void> addClubAdmin(
             @PathVariable Long id,
-            @RequestBody @Valid AddClubAdminRequest request) {
+            @RequestBody AddClubAdminRequest request) {
         clubAdminService.addClubAdmin(id, request.userId());
         return ApiResponse.success();
     }
@@ -77,7 +75,7 @@ public class ClubController implements ClubApiSpec {
     @PreAuthorize("@clubAdminGuard.canDelegate(authentication, #id)")
     public ApiResponse<Void> delegateClub(
             @PathVariable Long id,
-            @RequestBody @Valid DelegateClubAdminRequest request,
+            @RequestBody DelegateClubAdminRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         clubAdminService.delegateClub(id, userDetails.getUserId(), request.targetUserId(), request.formerLeaderAction());
         return ApiResponse.success();
@@ -120,7 +118,7 @@ public class ClubController implements ClubApiSpec {
     @PreAuthorize("@clubAdminGuard.canManage(authentication, #id)")
     public ApiResponse<Void> updateClub(
             @PathVariable Long id,
-            @RequestBody @Valid ClubUpdateRequest request) {
+            @RequestBody ClubUpdateRequest request) {
         clubService.updateClub(id, request);
         return ApiResponse.success();
     }
@@ -134,7 +132,7 @@ public class ClubController implements ClubApiSpec {
 
     @Override
     public ApiResponse<Boolean> toggleLike(
-            @PathVariable @Positive(message = "Club ID must be positive") Long id,
+            @PathVariable Long id,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         boolean isLiked = clubService.toggleLike(id, userDetails.getUserId());
         return ApiResponse.success(isLiked);
