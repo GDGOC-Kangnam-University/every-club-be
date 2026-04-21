@@ -20,6 +20,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -58,7 +59,7 @@ public class ClubController implements ClubApiSpec {
     @PreAuthorize("@clubAdminGuard.canLead(authentication, #id)")
     public ApiResponse<Void> addClubAdmin(
             @PathVariable Long id,
-            AddClubAdminRequest request) {
+            @RequestBody AddClubAdminRequest request) {
         clubAdminService.addClubAdmin(id, request.userId());
         return ApiResponse.success();
     }
@@ -76,7 +77,7 @@ public class ClubController implements ClubApiSpec {
     @PreAuthorize("@clubAdminGuard.canDelegate(authentication, #id)")
     public ApiResponse<Void> delegateClub(
             @PathVariable Long id,
-            DelegateClubAdminRequest request,
+            @RequestBody DelegateClubAdminRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         clubAdminService.delegateClub(id, userDetails.getUserId(), request.targetUserId(), request.formerLeaderAction());
         return ApiResponse.success();
@@ -119,7 +120,7 @@ public class ClubController implements ClubApiSpec {
     @PreAuthorize("@clubAdminGuard.canManage(authentication, #id)")
     public ApiResponse<Void> updateClub(
             @PathVariable Long id,
-            ClubUpdateRequest request) {
+            @RequestBody ClubUpdateRequest request) {
         clubService.updateClub(id, request);
         return ApiResponse.success();
     }
