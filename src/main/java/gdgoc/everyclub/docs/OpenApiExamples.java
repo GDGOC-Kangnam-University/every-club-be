@@ -1,6 +1,44 @@
 package gdgoc.everyclub.docs;
 
 public final class OpenApiExamples {
+    public static final String SUCCESS_VOID_RESPONSE = """
+            {
+              "status": "SUCCESS",
+              "message": null,
+              "data": null
+            }
+            """;
+
+    public static final String USER_CREATE_REQUEST = """
+            {
+              "signupToken": "signup-token-example",
+              "nickname": "동아리운영자",
+              "studentId": "202401234",
+              "password": "P@ssw0rd123!",
+              "passwordConfirm": "P@ssw0rd123!"
+            }
+            """;
+
+    public static final String USER_RESPONSE = """
+            {
+              "status": "SUCCESS",
+              "message": null,
+              "data": {
+                "id": 42,
+                "email": "student@kangnam.ac.kr",
+                "nickname": "동아리운영자",
+                "profileImageUrl": "https://cdn.everyclub.app/users/42/profile.png",
+                "department": "컴퓨터공학과",
+                "studentId": "202401234",
+                "phoneNumber": "010-1234-5678",
+                "bio": "학생 커뮤니티를 만드는 일에 관심이 있습니다.",
+                "role": "USER",
+                "createdAt": "2026-03-16T09:00:00",
+                "updatedAt": "2026-03-16T10:30:00"
+              }
+            }
+            """;
+
     public static final String UPDATE_CLUB_REQUEST = """
             {
               "name": "강남대 GDGoC",
@@ -43,6 +81,42 @@ public final class OpenApiExamples {
             }
             """;
 
+    public static final String CLUB_REGISTRATION_RESPONSE = """
+            {
+              "status": "SUCCESS",
+              "message": null,
+              "data": {
+                "publicId": "123e4567-e89b-12d3-a456-426614174000",
+                "status": "PENDING",
+                "submittedAt": "2026-03-16T12:30:00"
+              }
+            }
+            """;
+
+    public static final String CLUB_APPROVAL_RESPONSE = """
+            {
+              "status": "SUCCESS",
+              "message": null,
+              "data": {
+                "publicId": "123e4567-e89b-12d3-a456-426614174000",
+                "status": "APPROVED",
+                "submittedAt": "2026-03-16T12:30:00"
+              }
+            }
+            """;
+
+    public static final String CLUB_REJECTION_RESPONSE = """
+            {
+              "status": "SUCCESS",
+              "message": null,
+              "data": {
+                "publicId": "123e4567-e89b-12d3-a456-426614174000",
+                "status": "REJECTED",
+                "submittedAt": "2026-03-16T12:30:00"
+              }
+            }
+            """;
+
     public static final String USER_UPDATE_REQUEST = """
             {
               "nickname": "동아리운영자",
@@ -59,10 +133,36 @@ public final class OpenApiExamples {
             }
             """;
 
+    public static final String CHECK_EMAIL_RESPONSE = """
+            {
+              "status": "SUCCESS",
+              "message": null,
+              "data": true
+            }
+            """;
+
     public static final String PRESIGNED_UPLOAD_REQUEST = """
             {
               "fileName": "club-banner.png",
               "contentType": "image/png"
+            }
+            """;
+
+    public static final String PRESIGNED_UPLOAD_RESPONSE = """
+            {
+              "status": "SUCCESS",
+              "message": null,
+              "data": {
+                "presignedUrl": "https://storage.googleapis.com/bucket/object?signature=abc123"
+              }
+            }
+            """;
+
+    public static final String PRESIGNED_DOWNLOAD_RESPONSE = """
+            {
+              "status": "SUCCESS",
+              "message": null,
+              "data": "https://storage.googleapis.com/bucket/object?signature=abc123"
             }
             """;
 
@@ -79,10 +179,33 @@ public final class OpenApiExamples {
             }
             """;
 
+    public static final String SIGNUP_TOKEN_RESPONSE = """
+            {
+              "status": "SUCCESS",
+              "message": null,
+              "data": {
+                "signupToken": "signup-token-example",
+                "expiresIn": 600
+              }
+            }
+            """;
+
     public static final String LOGIN_REQUEST = """
             {
               "email": "student@kangnam.ac.kr",
               "password": "P@ssw0rd123!"
+            }
+            """;
+
+    public static final String LOGIN_RESPONSE = """
+            {
+              "status": "SUCCESS",
+              "message": null,
+              "data": {
+                "grantType": "Bearer",
+                "accessToken": "jwt-access-token-example",
+                "expiresIn": 7200
+              }
             }
             """;
 
@@ -96,6 +219,21 @@ public final class OpenApiExamples {
             {
               "targetUserId": 42,
               "formerLeaderAction": "DEMOTE"
+            }
+            """;
+
+    public static final String CLUB_ADMIN_LIST_RESPONSE = """
+            {
+              "status": "SUCCESS",
+              "message": null,
+              "data": [
+                {
+                  "userId": 42,
+                  "nickname": "동아리운영자",
+                  "role": "LEAD",
+                  "joinedAt": "2026-03-16T09:00:00"
+                }
+              ]
             }
             """;
 

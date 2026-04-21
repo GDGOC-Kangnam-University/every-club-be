@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
 import io.swagger.v3.oas.annotations.parameters.RequestBody;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.Positive;
 import org.springdoc.core.annotations.ParameterObject;
@@ -46,11 +47,33 @@ public interface ClubApiSpec {
 
     @GetMapping("/{id}/admins")
     @Operation(summary = "동아리 관리자 목록", description = "해당 동아리의 관리자 목록(LEAD/MEMBER)을 반환합니다.")
+    @ApiResponses(@io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "동아리 관리자 목록 조회 성공",
+            content = @Content(
+                    mediaType = "application/json",
+                    examples = @ExampleObject(
+                            name = "관리자 목록 응답 예시",
+                            value = OpenApiExamples.CLUB_ADMIN_LIST_RESPONSE
+                    )
+            )
+    ))
     ApiResponse<List<ClubAdminResponse>> getClubAdmins(
             @Parameter(description = ClubDocs.PARAM_CLUB_ID, example = "1") @PathVariable Long id);
 
     @PostMapping("/{id}/admins")
     @Operation(summary = "동아리 관리자 추가", description = "동아리에 관리자를 MEMBER 역할로 추가합니다. LEAD만 가능합니다.")
+    @ApiResponses(@io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "동아리 관리자 추가 성공",
+            content = @Content(
+                    mediaType = "application/json",
+                    examples = @ExampleObject(
+                            name = "관리자 추가 성공 예시",
+                            value = OpenApiExamples.SUCCESS_VOID_RESPONSE
+                    )
+            )
+    ))
     @RequestBody(
             required = true,
             description = "관리자 추가 요청 본문",
@@ -74,6 +97,17 @@ public interface ClubApiSpec {
 
     @PostMapping("/{id}/admins/delegate")
     @Operation(summary = "동아리 LEAD 위임", description = "LEAD 권한을 다른 관리자(MEMBER)에게 위임합니다. formerLeaderAction으로 기존 LEAD를 MEMBER로 강등(DEMOTE)하거나 제거(REMOVE)를 선택합니다.")
+    @ApiResponses(@io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "동아리 LEAD 위임 성공",
+            content = @Content(
+                    mediaType = "application/json",
+                    examples = @ExampleObject(
+                            name = "LEAD 위임 성공 예시",
+                            value = OpenApiExamples.SUCCESS_VOID_RESPONSE
+                    )
+            )
+    ))
     @RequestBody(
             required = true,
             description = "LEAD 위임 요청 본문",

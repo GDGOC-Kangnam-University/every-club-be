@@ -9,14 +9,15 @@ import gdgoc.everyclub.club.service.ClubAdminService;
 import gdgoc.everyclub.club.service.ClubService;
 import gdgoc.everyclub.security.dto.CustomUserDetails;
 import gdgoc.everyclub.security.jwt.JwtProvider;
+import gdgoc.everyclub.support.TestAuthenticationPrincipalConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -26,10 +27,9 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -38,6 +38,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(value = ClubController.class, excludeAutoConfiguration = SecurityAutoConfiguration.class)
+@Import(TestAuthenticationPrincipalConfig.class)
 @ActiveProfiles("test")
 class ClubAdminControllerTest {
 
@@ -70,8 +71,7 @@ class ClubAdminControllerTest {
         given(clubAdminService.getManagedClubs(userId)).willReturn(List.of());
 
         mockMvc.perform(get("/clubs/me")
-                        .with(authentication(new UsernamePasswordAuthenticationToken(
-                                principal, null, principal.getAuthorities()))))
+                        .with(user(principal)))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"));
@@ -89,8 +89,7 @@ class ClubAdminControllerTest {
         given(clubAdminService.getLikedClubs(eq(userId), any())).willReturn(new PageImpl<>(List.of()));
 
         mockMvc.perform(get("/clubs/liked")
-                        .with(authentication(new UsernamePasswordAuthenticationToken(
-                                principal, null, principal.getAuthorities()))))
+                        .with(user(principal)))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"));
@@ -164,8 +163,7 @@ class ClubAdminControllerTest {
                 2L, DelegateClubAdminRequest.FormerLeaderAction.DEMOTE);
 
         mockMvc.perform(post("/clubs/{id}/admins/delegate", clubId)
-                        .with(authentication(new UsernamePasswordAuthenticationToken(
-                                principal, null, principal.getAuthorities())))
+                        .with(user(principal))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
