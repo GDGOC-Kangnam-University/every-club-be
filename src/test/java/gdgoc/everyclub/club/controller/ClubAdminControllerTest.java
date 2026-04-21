@@ -1,46 +1,46 @@
 package gdgoc.everyclub.club.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import gdgoc.everyclub.club.domain.RecruitingStatus;
-import gdgoc.everyclub.club.dto.ClubUpdateRequest;
-import gdgoc.everyclub.club.security.ClubAdminGuard;
+import gdgoc.everyclub.club.domain.ClubAdminRole;
+import gdgoc.everyclub.club.dto.AddClubAdminRequest;
+import gdgoc.everyclub.club.dto.ClubAdminResponse;
+import gdgoc.everyclub.club.dto.DelegateClubAdminRequest;
 import gdgoc.everyclub.club.service.ClubAdminService;
 import gdgoc.everyclub.club.service.ClubService;
 import gdgoc.everyclub.security.dto.CustomUserDetails;
 import gdgoc.everyclub.security.jwt.JwtProvider;
+import gdgoc.everyclub.support.TestAuthenticationPrincipalConfig;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(ClubController.class)
-@Import(ClubAdminControllerTest.MethodSecurityConfig.class)
+@WebMvcTest(value = ClubController.class, excludeAutoConfiguration = SecurityAutoConfiguration.class)
+@Import(TestAuthenticationPrincipalConfig.class)
 @ActiveProfiles("test")
 class ClubAdminControllerTest {
-
-    @EnableMethodSecurity
-    static class MethodSecurityConfig {
-    }
 
     @Autowired
     MockMvc mockMvc;
@@ -54,177 +54,124 @@ class ClubAdminControllerTest {
     @MockitoBean
     ClubAdminService clubAdminService;
 
-    @MockitoBean(name = "clubAdminGuard")
-    ClubAdminGuard clubAdminGuard;
-
     @MockitoBean
     JwtProvider jwtProvider;
 
-    private CustomUserDetails userDetails() {
-        return new CustomUserDetails(1L, "user@example.com", null, "GUEST");
+    private CustomUserDetails userDetails(Long userId) {
+        return new CustomUserDetails(userId, "user@example.com", null, "GUEST");
     }
 
-    // =====================================================================
-    // LEAD 전용 엔드포인트 — canLead = false → 403
-    // =====================================================================
+    // ── GET /clubs/me ──────────────────────────────────────────────────────
 
     @Test
-    @DisplayName("canLead가 false이면 POST /clubs/{id}/admins 요청 시 403을 반환한다")
-    void postAdmins_whenNotLead_returns403() throws Exception {
-        // given
-        given(clubAdminGuard.canLead(any(), eq(10L))).willReturn(false);
+    @DisplayName("GET /clubs/me - 내가 관리하는 동아리 목록을 반환한다")
+    void getManagedClubs_returnsOwnedClubs() throws Exception {
+        Long userId = 1L;
+        CustomUserDetails principal = userDetails(userId);
+        given(clubAdminService.getManagedClubs(userId)).willReturn(List.of());
 
-        // when & then
-        mockMvc.perform(post("/clubs/10/admins")
-                        .with(user(userDetails()))
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"userId\": 2}"))
+        mockMvc.perform(get("/clubs/me")
+                        .with(user(principal)))
                 .andDo(print())
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"));
+
+        verify(clubAdminService).getManagedClubs(userId);
     }
 
-    @Test
-    @DisplayName("canLead가 false이면 DELETE /clubs/{id}/admins/{userId} 요청 시 403을 반환한다")
-    void deleteAdmin_whenNotLead_returns403() throws Exception {
-        // given
-        given(clubAdminGuard.canLead(any(), eq(10L))).willReturn(false);
+    // ── GET /clubs/liked ───────────────────────────────────────────────────
 
-        // when & then
-        mockMvc.perform(delete("/clubs/10/admins/2")
-                        .with(user(userDetails()))
-                        .with(csrf()))
+    @Test
+    @DisplayName("GET /clubs/liked - 좋아요한 동아리 목록을 반환한다")
+    void getLikedClubs_returnsLikedClubs() throws Exception {
+        Long userId = 1L;
+        CustomUserDetails principal = userDetails(userId);
+        given(clubAdminService.getLikedClubs(eq(userId), any())).willReturn(new PageImpl<>(List.of()));
+
+        mockMvc.perform(get("/clubs/liked")
+                        .with(user(principal)))
                 .andDo(print())
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"));
+
+        verify(clubAdminService).getLikedClubs(eq(userId), any());
     }
 
-    @Test
-    @DisplayName("canLead가 false이면 POST /clubs/{id}/admins/delegate 요청 시 403을 반환한다")
-    void delegateAdmin_whenNotLead_returns403() throws Exception {
-        // given
-        given(clubAdminGuard.canLead(any(), eq(10L))).willReturn(false);
+    // ── GET /clubs/{id}/admins ─────────────────────────────────────────────
 
-        // when & then
-        mockMvc.perform(post("/clubs/10/admins/delegate")
-                        .with(user(userDetails()))
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"targetUserId\": 2, \"formerLeaderAction\": \"DEMOTE\"}"))
+    @Test
+    @DisplayName("GET /clubs/{id}/admins - 동아리 관리자 목록을 반환한다")
+    void getClubAdmins_returnsAdminList() throws Exception {
+        Long clubId = 10L;
+        ClubAdminResponse admin = new ClubAdminResponse(2L, "관리자", ClubAdminRole.MEMBER, LocalDateTime.now());
+        given(clubAdminService.getClubAdmins(clubId)).willReturn(List.of(admin));
+
+        mockMvc.perform(get("/clubs/{id}/admins", clubId))
                 .andDo(print())
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"))
+                .andExpect(jsonPath("$.data[0].userId").value(2))
+                .andExpect(jsonPath("$.data[0].nickname").value("관리자"))
+                .andExpect(jsonPath("$.data[0].role").value("MEMBER"));
+
+        verify(clubAdminService).getClubAdmins(clubId);
     }
 
-    @Test
-    @DisplayName("canLead가 false이면 DELETE /clubs/{id} 요청 시 403을 반환한다")
-    void deleteClub_whenNotLead_returns403() throws Exception {
-        // given
-        given(clubAdminGuard.canLead(any(), eq(10L))).willReturn(false);
-
-        // when & then
-        mockMvc.perform(delete("/clubs/10")
-                        .with(user(userDetails()))
-                        .with(csrf()))
-                .andDo(print())
-                .andExpect(status().isForbidden());
-    }
-
-    // =====================================================================
-    // MANAGE 엔드포인트 — canManage = false → 403
-    // =====================================================================
+    // ── POST /clubs/{id}/admins ────────────────────────────────────────────
 
     @Test
-    @DisplayName("canManage가 false이면 PUT /clubs/{id} 요청 시 403을 반환한다")
-    void updateClub_whenNotAdmin_returns403() throws Exception {
-        // given
-        given(clubAdminGuard.canManage(any(), eq(10L))).willReturn(false);
+    @DisplayName("POST /clubs/{id}/admins - 관리자를 추가하고 서비스를 호출한다")
+    void addClubAdmin_invokesService() throws Exception {
+        Long clubId = 10L;
+        AddClubAdminRequest request = new AddClubAdminRequest(2L);
 
-        ClubUpdateRequest request = ClubUpdateRequest.builder()
-                .name("동아리 이름")
-                .summary("한 줄 소개")
-                .recruitingStatus(RecruitingStatus.OPEN)
-                .hasFee(false)
-                .isPublic(true)
-                .tags(List.of("태그1"))
-                .build();
-
-        // when & then
-        mockMvc.perform(put("/clubs/10")
-                        .with(user(userDetails()))
-                        .with(csrf())
+        mockMvc.perform(post("/clubs/{id}/admins", clubId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"));
+
+        verify(clubAdminService).addClubAdmin(clubId, 2L);
     }
 
-    @Test
-    @DisplayName("canManage가 false이면 GET /clubs/{id}/admins 요청 시 403을 반환한다")
-    void getAdmins_whenNotAdmin_returns403() throws Exception {
-        // given
-        given(clubAdminGuard.canManage(any(), eq(10L))).willReturn(false);
+    // ── DELETE /clubs/{id}/admins/{userId} ─────────────────────────────────
 
-        // when & then
-        mockMvc.perform(get("/clubs/10/admins")
-                        .with(user(userDetails())))
+    @Test
+    @DisplayName("DELETE /clubs/{id}/admins/{userId} - 관리자를 제거하고 서비스를 호출한다")
+    void removeClubAdmin_invokesService() throws Exception {
+        Long clubId = 10L;
+        Long targetUserId = 2L;
+
+        mockMvc.perform(delete("/clubs/{id}/admins/{userId}", clubId, targetUserId))
                 .andDo(print())
-                .andExpect(status().isForbidden());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"));
+
+        verify(clubAdminService).removeClubAdmin(clubId, targetUserId);
     }
 
-    // =====================================================================
-    // 정상 케이스
-    // =====================================================================
+    // ── POST /clubs/{id}/admins/delegate ──────────────────────────────────
 
     @Test
-    @DisplayName("canLead가 true이면 POST /clubs/{id}/admins 요청 시 200을 반환한다")
-    void postAdmins_whenLead_returns200() throws Exception {
-        // given
-        given(clubAdminGuard.canLead(any(), eq(10L))).willReturn(true);
+    @DisplayName("POST /clubs/{id}/admins/delegate - LEAD 위임 요청을 서비스에 전달한다")
+    void delegateClub_invokesService() throws Exception {
+        Long clubId = 10L;
+        Long currentUserId = 1L;
+        CustomUserDetails principal = userDetails(currentUserId);
+        DelegateClubAdminRequest request = new DelegateClubAdminRequest(
+                2L, DelegateClubAdminRequest.FormerLeaderAction.DEMOTE);
 
-        // when & then
-        mockMvc.perform(post("/clubs/10/admins")
-                        .with(user(userDetails()))
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"userId\": 2}"))
-                .andDo(print())
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    @DisplayName("canManage가 true이면 PUT /clubs/{id} 요청 시 200을 반환한다")
-    void updateClub_whenAdmin_returns200() throws Exception {
-        // given
-        given(clubAdminGuard.canManage(any(), eq(10L))).willReturn(true);
-
-        ClubUpdateRequest request = ClubUpdateRequest.builder()
-                .name("동아리 이름")
-                .summary("한 줄 소개")
-                .recruitingStatus(RecruitingStatus.OPEN)
-                .hasFee(false)
-                .isPublic(true)
-                .tags(List.of("태그1"))
-                .build();
-
-        // when & then
-        mockMvc.perform(put("/clubs/10")
-                        .with(user(userDetails()))
-                        .with(csrf())
+        mockMvc.perform(post("/clubs/{id}/admins/delegate", clubId)
+                        .with(user(principal))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
-                .andExpect(status().isOk());
-    }
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("SUCCESS"));
 
-    // =====================================================================
-    // 미인증
-    // =====================================================================
-
-    @Test
-    @DisplayName("인증되지 않은 요청은 GET /clubs/{id}/admins에서 401을 반환한다")
-    void getAdmins_unauthenticated_returns401() throws Exception {
-        // when & then
-        mockMvc.perform(get("/clubs/10/admins"))
-                .andDo(print())
-                .andExpect(status().isUnauthorized());
+        verify(clubAdminService).delegateClub(
+                eq(clubId), eq(currentUserId), eq(2L),
+                eq(DelegateClubAdminRequest.FormerLeaderAction.DEMOTE));
     }
 }
