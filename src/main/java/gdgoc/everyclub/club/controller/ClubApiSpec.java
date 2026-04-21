@@ -14,9 +14,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.ExampleObject;
-import io.swagger.v3.oas.annotations.parameters.RequestBody;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Positive;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.data.domain.Page;
@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
@@ -74,7 +75,7 @@ public interface ClubApiSpec {
                     )
             )
     ))
-    @RequestBody(
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
             required = true,
             description = "관리자 추가 요청 본문",
             content = @Content(
@@ -87,7 +88,7 @@ public interface ClubApiSpec {
     )
     ApiResponse<Void> addClubAdmin(
             @Parameter(description = ClubDocs.PARAM_CLUB_ID, example = "1") @PathVariable Long id,
-            AddClubAdminRequest request);
+            @Valid @RequestBody AddClubAdminRequest request);
 
     @DeleteMapping("/{id}/admins/{userId}")
     @Operation(summary = "동아리 관리자 제거", description = "동아리 관리자를 제거합니다. LEAD만 가능하며, 마지막 관리자는 제거할 수 없습니다.")
@@ -108,7 +109,7 @@ public interface ClubApiSpec {
                     )
             )
     ))
-    @RequestBody(
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
             required = true,
             description = "LEAD 위임 요청 본문",
             content = @Content(
@@ -121,7 +122,7 @@ public interface ClubApiSpec {
     )
     ApiResponse<Void> delegateClub(
             @Parameter(description = ClubDocs.PARAM_CLUB_ID, example = "1") @PathVariable Long id,
-            DelegateClubAdminRequest request,
+            @Valid @RequestBody DelegateClubAdminRequest request,
             @Parameter(hidden = true) @AuthenticationPrincipal CustomUserDetails userDetails);
 
     @GetMapping
@@ -158,7 +159,7 @@ public interface ClubApiSpec {
 
     @PutMapping("/{id}")
     @Operation(summary = "동아리 수정", description = "기존 동아리 정보를 수정합니다.")
-    @RequestBody(
+    @io.swagger.v3.oas.annotations.parameters.RequestBody(
             required = true,
             description = "동아리 수정 요청 본문",
             content = @Content(
@@ -171,7 +172,7 @@ public interface ClubApiSpec {
     )
     ApiResponse<Void> updateClub(
             @Parameter(description = ClubDocs.PARAM_CLUB_ID, example = "1") @PathVariable Long id,
-            ClubUpdateRequest request);
+            @Valid @RequestBody ClubUpdateRequest request);
 
     @DeleteMapping("/{id}")
     @Operation(summary = "동아리 삭제", description = "id로 동아리를 삭제합니다. LEAD만 가능합니다.")

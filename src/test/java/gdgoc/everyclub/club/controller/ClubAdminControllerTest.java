@@ -28,6 +28,7 @@ import java.util.List;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
@@ -135,6 +136,20 @@ class ClubAdminControllerTest {
         verify(clubAdminService).addClubAdmin(clubId, 2L);
     }
 
+    @Test
+    @DisplayName("POST /clubs/{id}/admins - 요청 본문 검증 실패 시 400을 반환한다")
+    void addClubAdmin_invalidRequest_returns400() throws Exception {
+        Long clubId = 10L;
+
+        mockMvc.perform(post("/clubs/{id}/admins", clubId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+
+        verify(clubAdminService, never()).addClubAdmin(any(), any());
+    }
+
     // ── DELETE /clubs/{id}/admins/{userId} ─────────────────────────────────
 
     @Test
@@ -173,5 +188,21 @@ class ClubAdminControllerTest {
         verify(clubAdminService).delegateClub(
                 eq(clubId), eq(currentUserId), eq(2L),
                 eq(DelegateClubAdminRequest.FormerLeaderAction.DEMOTE));
+    }
+
+    @Test
+    @DisplayName("POST /clubs/{id}/admins/delegate - 요청 본문 검증 실패 시 400을 반환한다")
+    void delegateClub_invalidRequest_returns400() throws Exception {
+        Long clubId = 10L;
+        CustomUserDetails principal = userDetails(1L);
+
+        mockMvc.perform(post("/clubs/{id}/admins/delegate", clubId)
+                        .with(user(principal))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+
+        verify(clubAdminService, never()).delegateClub(any(), any(), any(), any());
     }
 }

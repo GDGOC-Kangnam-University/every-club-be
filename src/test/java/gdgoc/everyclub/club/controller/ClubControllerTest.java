@@ -33,6 +33,7 @@ import gdgoc.everyclub.security.dto.CustomUserDetails;
 import static org.mockito.ArgumentMatchers.*;
 
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -142,6 +143,20 @@ class ClubControllerTest {
                 .andExpect(jsonPath("$.status").value("SUCCESS"));
 
         verify(clubService).updateClub(eq(clubId), any(ClubUpdateRequest.class));
+    }
+
+    @Test
+    @DisplayName("동아리 수정 요청 본문 검증 실패 시 400을 반환한다")
+    void updateClub_invalidRequest_returns400() throws Exception {
+        Long clubId = 1L;
+
+        mockMvc.perform(put("/clubs/{id}", clubId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+
+        verify(clubService, never()).updateClub(any(), any());
     }
 
     // ── GET /clubs (name/tag 통합 검색) ──────────────────────────────────────
