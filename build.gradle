@@ -28,7 +28,7 @@ repositories {
 
 ext {
     set('snippetsDir', file("build/generated-snippets"))
-    set('springCloudGcpVersion', '8.0.2')
+    set('springCloudGcpVersion', '7.4.1')
 }
 
 dependencies {

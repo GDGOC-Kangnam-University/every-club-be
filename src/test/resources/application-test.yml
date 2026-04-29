@@ -16,16 +16,6 @@ otp:
   character-set: ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
 
 spring:
-  autoconfigure:
-    exclude:
-      - com.google.cloud.spring.autoconfigure.core.GcpContextAutoConfiguration
-      - com.google.cloud.spring.autoconfigure.logging.StackdriverLoggingAutoConfiguration
-  cloud:
-    gcp:
-      core:
-        enabled: false
-      logging:
-        enabled: false
   datasource:
     url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
