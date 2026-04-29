@@ -18,6 +18,8 @@ otp:
 spring:
   cloud:
     gcp:
+      core:
+        enabled: false
       logging:
         enabled: false
   datasource:
