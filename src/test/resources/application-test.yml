@@ -16,6 +16,10 @@ otp:
   character-set: ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789
 
 spring:
+  cloud:
+    gcp:
+      logging:
+        enabled: false
   datasource:
     url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
     driver-class-name: org.h2.Driver
@@ -34,4 +38,3 @@ spring:
     enabled: false
     ignore-migration-patterns: "*:ignored"
     locations: classpath:db/migration
-
