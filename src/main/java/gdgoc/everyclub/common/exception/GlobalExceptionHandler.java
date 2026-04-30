@@ -10,10 +10,7 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import jakarta.servlet.http.HttpServletRequest;
 
-import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.security.access.AccessDeniedException;
-
-import java.util.stream.Collectors;
 
 import static gdgoc.everyclub.common.exception.AccessErrorCode.ACCESS_DENIED;
 import static gdgoc.everyclub.common.exception.SystemErrorCode.INTERNAL_ERROR;
@@ -64,9 +61,7 @@ public class GlobalExceptionHandler {
             MethodArgumentNotValidException e) {
 
         BindingResult bindingResult = e.getBindingResult();
-        String errorMessage = bindingResult.getAllErrors().stream()
-                .map(DefaultMessageSourceResolvable::getDefaultMessage)
-                .collect(Collectors.joining(", "));
+        String errorMessage = bindingResult.getAllErrors().get(0).getDefaultMessage();
 
         log.warn("Validation failed: {} at {}", errorMessage, request.getRequestURI());
 

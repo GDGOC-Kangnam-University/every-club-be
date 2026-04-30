@@ -32,4 +32,5 @@ spring:
         dialect: org.hibernate.dialect.H2Dialect
   flyway:
     enabled: false
-
+    ignore-migration-patterns: "*:ignored"
+    locations: classpath:db/migration

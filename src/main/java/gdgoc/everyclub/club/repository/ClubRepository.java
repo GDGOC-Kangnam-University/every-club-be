@@ -102,6 +102,12 @@ public interface ClubRepository extends JpaRepository<Club, Long>, JpaSpecificat
     @Query("SELECT DISTINCT c FROM Club c WHERE c.id IN :ids")
     List<Club> findAllByIdInWithGraph(@Param("ids") List<Long> ids);
 
+    // ── Liked clubs by user ───────────────────────────────────────────────────
+
+    @EntityGraph(attributePaths = {"author", "category", "clubTags.tag"})
+    @Query("SELECT c FROM Club c JOIN c.likedByUsers u WHERE u.id = :userId AND c.isPublic = true")
+    Page<Club> findLikedClubsByUserId(@Param("userId") Long userId, Pageable pageable);
+
     // ── Filter: like count batch (used after Specification page query) ────────
 
     /**

@@ -9,8 +9,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 import org.hibernate.annotations.UpdateTimestamp;
-import org.hibernate.annotations.Where;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashSet;
@@ -21,7 +21,7 @@ import java.util.Set;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 @SQLDelete(sql = "UPDATE users SET deleted_at = NOW() WHERE id = ?")
-@Where(clause = "deleted_at IS NULL")
+@SQLRestriction("deleted_at IS NULL")
 public class User {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -33,6 +33,9 @@ public class User {
 
     @Column(nullable = false, unique = true)
     private String email;
+
+    @Column(name = "password_hash", length = 60)
+    private String passwordHash;
 
     @Column(name = "email_verified", nullable = false)
     private boolean emailVerified = false;
@@ -70,9 +73,10 @@ public class User {
     private LocalDateTime deletedAt;
 
     @Builder
-    public User(String email, String nickname, String profileImageUrl,
+    public User(String email, String passwordHash, String nickname, String profileImageUrl,
                 String department, String studentId, String phoneNumber, String bio) {
         this.email = email;
+        this.passwordHash = passwordHash;
         this.nickname = nickname;
         this.profileImageUrl = profileImageUrl;
         this.department = department;
@@ -84,11 +88,6 @@ public class User {
     public User(String nickname, String email) {
         this.nickname = nickname;
         this.email = email;
-    }
-
-    public User(UserCreateRequest request) {
-        this.email = request.email();
-        this.nickname = request.nickname();
     }
 
     public void updateProfile(String nickname, String department, String studentId,

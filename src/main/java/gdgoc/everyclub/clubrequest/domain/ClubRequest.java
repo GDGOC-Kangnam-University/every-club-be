@@ -64,4 +64,12 @@ public class ClubRequest {
         this.reviewedAt = LocalDateTime.now();
         this.adminMemo = memo;
     }
+
+    public void resubmit(String newPayload) {
+        this.status = RequestStatus.PENDING;
+        this.payload = newPayload;
+        this.adminMemo = null;
+        this.reviewedBy = null;
+        this.reviewedAt = null;
+    }
 }

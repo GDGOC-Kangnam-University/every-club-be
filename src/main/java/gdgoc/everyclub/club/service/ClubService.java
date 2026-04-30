@@ -15,7 +15,6 @@ import gdgoc.everyclub.common.exception.BusinessErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
 import gdgoc.everyclub.common.exception.ValidationErrorCode;
-import gdgoc.everyclub.common.exception.AccessErrorCode;
 import gdgoc.everyclub.user.domain.User;
 import gdgoc.everyclub.user.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -40,44 +39,6 @@ public class ClubService {
     private final MajorRepository majorRepository;
     private final TagRepository tagRepository;
     private final UserService userService;
-
-    @Transactional
-    public Long createClub(ClubCreateRequest request, Long userId) {
-        if (request == null) {
-            throw new NullPointerException("ClubCreateRequest cannot be null");
-        }
-
-        if (clubRepository.existsBySlug(request.slug())) {
-            throw new LogicException(BusinessErrorCode.DUPLICATE_RESOURCE);
-        }
-
-        User author = userService.getUserById(userId);
-        Category category = categoryRepository.findById(request.categoryId())
-                .orElseThrow(() -> new LogicException(ResourceErrorCode.RESOURCE_NOT_FOUND));
-
-        Major major = findMajorById(request.majorId());
-
-        Club club = Club.builder()
-                .name(request.name())
-                .author(author)
-                .category(category)
-                .slug(request.slug())
-                .summary(request.summary())
-                .description(request.description())
-                .logoUrl(request.logoUrl())
-                .bannerUrl(request.bannerUrl())
-                .joinFormUrl(request.joinFormUrl())
-                .recruitingStatus(request.recruitingStatus())
-                .major(major)
-                .activityCycle(request.activityCycle())
-                .hasFee(request.hasFee())
-                .isPublic(request.isPublic())
-                .build();
-
-        clubRepository.save(club);
-        resolveAndSetTags(club, request.tags());
-        return club.getId();
-    }
 
     /**
      * 공개 동아리 전체를 페이지 단위로 조회한다 (like count 포함).
@@ -125,15 +86,11 @@ public class ClubService {
     }
 
     @Transactional
-    public void updateClub(Long id, Long userId, ClubUpdateRequest request) {
+    public void updateClub(Long id, ClubUpdateRequest request) {
         if (request == null) {
             throw new NullPointerException("ClubUpdateRequest cannot be null");
         }
         Club club = getClubById(id);
-
-        if (!club.getAuthor().getId().equals(userId)) {
-            throw new LogicException(AccessErrorCode.ACCESS_DENIED);
-        }
 
         Major major = findMajorById(request.majorId());
 
@@ -154,22 +111,9 @@ public class ClubService {
     }
 
     @Transactional
-    public void deleteClub(Long id, Long userId) {
+    public void deleteClub(Long id) {
         Club club = getClubById(id);
-
-        if (!club.getAuthor().getId().equals(userId)) {
-            throw new LogicException(AccessErrorCode.ACCESS_DENIED);
-        }
-
         clubRepository.delete(club);
-    }
-
-    /**
-     * Validates that the user exists in the system.
-     * Temporary authentication check until Spring Security is implemented.
-     */
-    public boolean validateUserExists(Long userId) {
-        return userService.existsById(userId);
     }
 
     @Transactional

@@ -13,7 +13,7 @@ public record ClubRequestAdminResponse(
         UUID publicId,
         @Schema(description = "Requester name", example = "Kim Student")
         String requesterName,
-        @Schema(description = "Requester email", example = "student@university.ac.kr")
+        @Schema(description = "Requester email", example = "student@kangnam.ac.kr")
         String requesterEmail,
         @Schema(description = "Stored request payload")
         ClubRequestPayload payload,

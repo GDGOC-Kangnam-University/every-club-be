@@ -3,21 +3,15 @@ package gdgoc.everyclub.user.controller;
 import gdgoc.everyclub.auth.EmailService;
 import gdgoc.everyclub.common.ApiResponse;
 import gdgoc.everyclub.security.dto.CustomUserDetails;
+import gdgoc.everyclub.user.dto.CheckEmailRequest;
 import gdgoc.everyclub.user.dto.UserCreateRequest;
 import gdgoc.everyclub.user.dto.UserResponse;
 import gdgoc.everyclub.user.dto.UserUpdateRequest;
 import gdgoc.everyclub.user.service.UserService;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.Parameter;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
@@ -26,34 +20,28 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/users")
 @RequiredArgsConstructor
-@Tag(name = "Users", description = "User profile and signup APIs")
-public class UserController {
+public class UserController implements UserApiSpec {
 
     private final UserService userService;
     private final EmailService emailService;
 
-    @PostMapping("/signup")
+    @Override
     @ResponseStatus(HttpStatus.CREATED)
-    @Operation(summary = "Sign up", description = "Create a new user account.")
     public ApiResponse<UserResponse> signup(@RequestBody @Valid UserCreateRequest request) {
         Long userId = userService.createUser(request);
         UserResponse response = new UserResponse(userService.getUserById(userId));
         return ApiResponse.success(response);
     }
 
-    @GetMapping("/me")
-    @Operation(summary = "Get my profile", description = "Get the current authenticated user's profile.")
+    @Override
     public ApiResponse<UserResponse> getMyProfile(
-            @Parameter(hidden = true)
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         UserResponse response = new UserResponse(userService.getUserById(userDetails.getUserId()));
         return ApiResponse.success(response);
     }
 
-    @PatchMapping("/me")
-    @Operation(summary = "Update my profile", description = "Update the current authenticated user's profile.")
+    @Override
     public ApiResponse<UserResponse> updateMyProfile(
-            @Parameter(hidden = true)
             @AuthenticationPrincipal CustomUserDetails userDetails,
             @RequestBody @Valid UserUpdateRequest request) {
         userService.updateUser(userDetails.getUserId(), request);
@@ -61,19 +49,16 @@ public class UserController {
         return ApiResponse.success(response);
     }
 
-    @DeleteMapping("/me")
+    @Override
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @Operation(summary = "Delete my account", description = "Delete the current authenticated user's account.")
     public ApiResponse<Void> deleteMyAccount(
-            @Parameter(hidden = true)
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         userService.deleteUser(userDetails.getUserId());
         return ApiResponse.success();
     }
 
-    @PostMapping("/check-email")
-    @Operation(summary = "Check school email", description = "Check whether the given email is a school email.")
-    public ApiResponse<Boolean> checkEmail(@RequestBody String email) {
-        return ApiResponse.success(emailService.isSchoolEmail(email));
+    @Override
+    public ApiResponse<Boolean> checkEmail(@RequestBody @Valid CheckEmailRequest request) {
+        return ApiResponse.success(emailService.isSchoolEmail(request.email()));
     }
 }

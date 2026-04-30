@@ -1,21 +1,26 @@
 package gdgoc.everyclub.auth.controller;
 
-import gdgoc.everyclub.auth.dto.OtpResponse;
-import gdgoc.everyclub.auth.dto.SendOtpRequest;
-import gdgoc.everyclub.auth.dto.VerifyOtpRequest;
-import gdgoc.everyclub.auth.service.OtpService;
+import gdgoc.everyclub.auth.dto.LoginRequest;
+import gdgoc.everyclub.auth.dto.SignupSendOtpRequest;
+import gdgoc.everyclub.auth.dto.SignupTokenResponse;
+import gdgoc.everyclub.auth.dto.SignupVerifyOtpRequest;
 import gdgoc.everyclub.auth.service.RateLimiterService;
+import gdgoc.everyclub.auth.service.SignupService;
 import gdgoc.everyclub.common.ApiResponse;
+import gdgoc.everyclub.common.exception.AuthErrorCode;
+import gdgoc.everyclub.common.exception.LogicException;
+import gdgoc.everyclub.security.dto.CustomUserDetails;
+import gdgoc.everyclub.security.dto.TokenInfo;
+import gdgoc.everyclub.security.jwt.JwtProvider;
 import gdgoc.everyclub.user.domain.User;
 import gdgoc.everyclub.user.repository.UserRepository;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,88 +28,51 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
-@Tag(name = "Authentication", description = "Authentication endpoints")
-public class AuthController {
+public class AuthController implements AuthApiSpec {
 
-    private final OtpService otpService;
+    private final SignupService signupService;
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtProvider jwtProvider;
     private final RateLimiterService rateLimiterService;
 
-    @PostMapping("/send-otp")
-    @Operation(summary = "Send OTP to email", description = "Generates and sends an OTP code to the user's email for verification")
-    public ResponseEntity<ApiResponse<OtpResponse>> sendOtp(
-            @Valid @RequestBody SendOtpRequest request,
+    @Override
+    public ResponseEntity<ApiResponse<Void>> signupSendOtp(
+            @Valid @RequestBody SignupSendOtpRequest request,
             HttpServletRequest httpRequest) {
-
-        // Apply rate limiting based on client IP
-        String clientIp = getClientIp(httpRequest);
-        rateLimiterService.acquireOrThrow(clientIp);
-
-        // Find user by email - always proceed regardless of existence
-        // This prevents user enumeration attacks
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElse(null);
-
-        // Always generate and "send" OTP even if user doesn't exist
-        // This prevents attackers from knowing which emails are registered
-        String otpCode = otpService.generateOtp();
-
-        if (user != null) {
-            // Save verification and send email only for existing users
-            otpService.saveVerification(user.getId(), otpCode);
-            otpService.sendOtpEmail(request.getEmail(), otpCode);
-        }
-        // For non-existent users: OTP is generated but not sent, no error returned
-
-        return ResponseEntity.ok(ApiResponse.success(
-                new OtpResponse("If the email is registered, an OTP will be sent.", true)
-        ));
+        rateLimiterService.acquireOrThrow(getClientIp(httpRequest));
+        signupService.sendOtp(request.email());
+        return ResponseEntity.ok(ApiResponse.success());
     }
 
-    @PostMapping("/verify")
-    @Operation(summary = "Verify OTP", description = "Verifies the OTP code and marks the user's email as verified")
-    @Transactional
-    public ResponseEntity<ApiResponse<OtpResponse>> verifyOtp(
-            @Valid @RequestBody VerifyOtpRequest request,
+    @Override
+    public ResponseEntity<ApiResponse<SignupTokenResponse>> signupVerifyOtp(
+            @Valid @RequestBody SignupVerifyOtpRequest request,
             HttpServletRequest httpRequest) {
-
-        // Apply rate limiting based on client IP
-        String clientIp = getClientIp(httpRequest);
-        rateLimiterService.acquireOrThrow(clientIp);
-
-        // Find user by email
-        User user = userRepository.findByEmail(request.getEmail())
-                .orElse(null);
-
-        // Always return generic message to prevent user enumeration
-        // Don't reveal whether the email exists or the OTP is invalid
-        if (user == null) {
-            return ResponseEntity.ok(ApiResponse.success(
-                    new OtpResponse("Verification processing complete.", false)
-            ));
-        }
-
-        // Verify OTP
-        boolean isValid = otpService.verifyOtp(user.getId(), request.getCode());
-
-        if (isValid) {
-            // Mark email as verified
-            user.markEmailAsVerified();
-            userRepository.save(user);
-
-            return ResponseEntity.ok(ApiResponse.success(
-                    new OtpResponse("Email verified successfully.", true)
-            ));
-        } else {
-            return ResponseEntity.ok(ApiResponse.success(
-                    new OtpResponse("Verification processing complete.", false)
-            ));
-        }
+        rateLimiterService.acquireOrThrow(getClientIp(httpRequest));
+        SignupTokenResponse response = signupService.verifyOtp(request.email(), request.code());
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    /**
-     * Extract client IP address from request, handling proxies.
-     */
+    @Override
+    public ResponseEntity<ApiResponse<TokenInfo>> login(@Valid @RequestBody LoginRequest request) {
+        User user = userRepository.findByEmail(request.email())
+                .orElseThrow(() -> new LogicException(AuthErrorCode.INVALID_CREDENTIALS));
+
+        if (user.getPasswordHash() == null
+                || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            throw new LogicException(AuthErrorCode.INVALID_CREDENTIALS);
+        }
+
+        CustomUserDetails principal = new CustomUserDetails(
+                user.getId(), user.getEmail(), "", user.getRole().name());
+        Authentication auth = new UsernamePasswordAuthenticationToken(
+                principal, null, principal.getAuthorities());
+
+        TokenInfo tokenInfo = jwtProvider.generateToken(auth);
+        return ResponseEntity.ok(ApiResponse.success(tokenInfo));
+    }
+
     private String getClientIp(HttpServletRequest request) {
         String xForwardedFor = request.getHeader("X-Forwarded-For");
         if (xForwardedFor != null && !xForwardedFor.isEmpty()) {

@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
 public class UserResponse {
     @Schema(description = "사용자 id", example = "42")
     private final Long id;
-    @Schema(description = "이메일 주소", example = "student@university.ac.kr")
+    @Schema(description = "이메일 주소", example = "student@kangnam.ac.kr")
     private final String email;
     @Schema(description = "닉네임", example = "동아리운영자")
     private final String nickname;
@@ -20,7 +20,7 @@ public class UserResponse {
     private final String profileImageUrl;
     @Schema(description = "학과명", nullable = true, example = "컴퓨터공학과")
     private final String department;
-    @Schema(description = "학번", nullable = true, example = "20241234")
+    @Schema(description = "학번", nullable = true, example = "202401234")
     private final String studentId;
     @Schema(description = "전화번호", nullable = true, example = "010-1234-5678")
     private final String phoneNumber;

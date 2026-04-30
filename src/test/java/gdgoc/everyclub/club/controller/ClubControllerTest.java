@@ -5,20 +5,22 @@ import gdgoc.everyclub.club.domain.Category;
 import gdgoc.everyclub.club.domain.Club;
 import gdgoc.everyclub.club.domain.RecruitingStatus;
 import gdgoc.everyclub.club.dto.*;
-import gdgoc.everyclub.common.exception.ValidationErrorCode;
+import gdgoc.everyclub.club.service.ClubAdminService;
 import gdgoc.everyclub.club.service.ClubService;
+import gdgoc.everyclub.common.exception.ValidationErrorCode;
 import gdgoc.everyclub.common.exception.LogicException;
-import gdgoc.everyclub.security.dto.CustomUserDetails;
 import gdgoc.everyclub.security.jwt.JwtProvider;
 import gdgoc.everyclub.common.exception.ResourceErrorCode;
+import gdgoc.everyclub.support.TestAuthenticationPrincipalConfig;
 import gdgoc.everyclub.user.domain.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -26,17 +28,21 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
 
+import gdgoc.everyclub.security.dto.CustomUserDetails;
+
 import static org.mockito.ArgumentMatchers.*;
+
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(ClubController.class)
+@WebMvcTest(value = ClubController.class, excludeAutoConfiguration = SecurityAutoConfiguration.class)
+@Import(TestAuthenticationPrincipalConfig.class)
 @ActiveProfiles("test")
 class ClubControllerTest {
 
@@ -47,50 +53,13 @@ class ClubControllerTest {
     private ClubService clubService;
 
     @MockitoBean
+    private ClubAdminService clubAdminService;
+
+    @MockitoBean
     private JwtProvider jwtProvider;
 
     @Autowired
     private ObjectMapper objectMapper;
-
-    private CustomUserDetails createUserDetails() {
-        return new CustomUserDetails(1L, "author@example.com", null, "ROLE_USER");
-    }
-
-    @Test
-    @DisplayName("동아리 생성 요청 시 200 OK와 생성된 동아리 ID를 반환한다")
-    void createClub() throws Exception {
-        // given
-        ClubCreateRequest request = createCreateRequest("Name", "slug");
-        given(clubService.createClub(any(ClubCreateRequest.class), eq(1L))).willReturn(1L);
-
-        // when & then
-        mockMvc.perform(post("/clubs")
-                        .with(user(createUserDetails()))
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("SUCCESS"))
-                .andExpect(jsonPath("$.data").value(1L));
-    }
-
-    @Test
-    @DisplayName("동아리 생성 요청 시 필수 값이 누락되면 400 Bad Request를 반환한다")
-    void createClub_InvalidInput() throws Exception {
-        // given: empty name is invalid
-        ClubCreateRequest request = createCreateRequest("", "slug");
-
-        // when & then
-        mockMvc.perform(post("/clubs")
-                        .with(user(createUserDetails()))
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request)))
-                .andDo(print())
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.status").value("ERROR"));
-    }
 
     @Test
     @DisplayName("모든 동아리 조회 시 200 OK와 동아리 리스트를 반환한다")
@@ -114,7 +83,6 @@ class ClubControllerTest {
 
         // when & then
         mockMvc.perform(get("/clubs")
-                        .with(user(createUserDetails()))
                         .param("page", "0")
                         .param("size", "10"))
                 .andDo(print())
@@ -130,6 +98,8 @@ class ClubControllerTest {
     void getClub() throws Exception {
         // given
         Long clubId = 1L;
+        Long userId = 1L;
+        CustomUserDetails principal = new CustomUserDetails(userId, "user@example.com", null, "GUEST");
         User author = User.builder().email("author@example.com").nickname("Author").build();
         Category category = new Category("Academic");
         Club club = Club.builder()
@@ -145,11 +115,11 @@ class ClubControllerTest {
                 .build();
         ReflectionTestUtils.setField(club, "id", clubId);
 
-        given(clubService.getPublicClubById(clubId, null)).willReturn(new ClubDetailResponse(club));
+        given(clubService.getPublicClubById(clubId, userId)).willReturn(new ClubDetailResponse(club));
 
         // when & then
         mockMvc.perform(get("/clubs/{id}", clubId)
-                        .with(user(createUserDetails())))
+                        .with(user(principal)))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
@@ -166,15 +136,27 @@ class ClubControllerTest {
 
         // when & then
         mockMvc.perform(put("/clubs/{id}", clubId)
-                        .with(user(createUserDetails()))
-                        .with(csrf())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"));
 
-        verify(clubService).updateClub(eq(clubId), eq(1L), any(ClubUpdateRequest.class));
+        verify(clubService).updateClub(eq(clubId), any(ClubUpdateRequest.class));
+    }
+
+    @Test
+    @DisplayName("동아리 수정 요청 본문 검증 실패 시 400을 반환한다")
+    void updateClub_invalidRequest_returns400() throws Exception {
+        Long clubId = 1L;
+
+        mockMvc.perform(put("/clubs/{id}", clubId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andDo(print())
+                .andExpect(status().isBadRequest());
+
+        verify(clubService, never()).updateClub(any(), any());
     }
 
     // ── GET /clubs (name/tag 통합 검색) ──────────────────────────────────────
@@ -189,7 +171,6 @@ class ClubControllerTest {
 
         // when & then
         mockMvc.perform(get("/clubs")
-                        .with(user(createUserDetails()))
                         .param("name", "축구")
                         .param("page", "0").param("size", "10"))
                 .andExpect(status().isOk())
@@ -211,7 +192,6 @@ class ClubControllerTest {
 
         // when & then
         mockMvc.perform(get("/clubs")
-                        .with(user(createUserDetails()))
                         .param("tag", "운동")
                         .param("page", "0").param("size", "10"))
                 .andExpect(status().isOk())
@@ -231,7 +211,6 @@ class ClubControllerTest {
 
         // when & then
         mockMvc.perform(get("/clubs")
-                        .with(user(createUserDetails()))
                         .param("name", "축구")
                         .param("tag", "운동")
                         .param("page", "0").param("size", "10"))
@@ -252,7 +231,6 @@ class ClubControllerTest {
 
         // when & then
         mockMvc.perform(get("/clubs")
-                        .with(user(createUserDetails()))
                         .param("name", "축구")
                         .param("categoryIds", "1")
                         .param("hasFee", "false")
@@ -272,7 +250,6 @@ class ClubControllerTest {
     @DisplayName("GET /clubs/search 파라미터 없으면 400을 반환한다")
     void searchClubs_NoParams_Returns400() throws Exception {
         mockMvc.perform(get("/clubs/search")
-                        .with(user(createUserDetails()))
                         .param("page", "0").param("size", "10"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("ERROR"));
@@ -287,7 +264,6 @@ class ClubControllerTest {
 
         // when & then
         mockMvc.perform(get("/clubs/search")
-                        .with(user(createUserDetails()))
                         .param("name", "축구")
                         .param("tag", "운동")
                         .param("page", "0").param("size", "10"))
@@ -309,7 +285,6 @@ class ClubControllerTest {
 
         // when & then
         mockMvc.perform(get("/clubs/search")
-                        .with(user(createUserDetails()))
                         .param("tag", tag)
                         .param("page", "0")
                         .param("size", "10"))
@@ -330,14 +305,12 @@ class ClubControllerTest {
         Long clubId = 1L;
 
         // when & then
-        mockMvc.perform(delete("/clubs/{id}", clubId)
-                        .with(user(createUserDetails()))
-                        .with(csrf()))
+        mockMvc.perform(delete("/clubs/{id}", clubId))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"));
 
-        verify(clubService).deleteClub(eq(clubId), eq(1L));
+        verify(clubService).deleteClub(clubId);
     }
 
     @Test
@@ -345,21 +318,19 @@ class ClubControllerTest {
     void toggleLike() throws Exception {
         // given
         Long clubId = 1L;
-        Long userId = 1L; // Mocked user ID
-        given(clubService.validateUserExists(userId)).willReturn(true);
-        given(clubService.toggleLike(eq(clubId), eq(userId))).willReturn(true);
+        Long userId = 1L;
+        CustomUserDetails principal = new CustomUserDetails(userId, "user@example.com", null, "GUEST");
+        given(clubService.toggleLike(any(), any())).willReturn(true);
 
         // when & then
         mockMvc.perform(post("/clubs/{id}/like", clubId)
-                        .with(user(createUserDetails()))
-                        .with(csrf())
-                        .header("X-User-Id", userId)) // Assume user ID passed via header for now as a mock
+                        .with(user(principal)))
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("SUCCESS"))
                 .andExpect(jsonPath("$.data").value(true));
 
-        verify(clubService).toggleLike(eq(clubId), eq(userId));
+        verify(clubService).toggleLike(clubId, userId);
     }
 
     private Club buildClub() {
@@ -373,21 +344,6 @@ class ClubControllerTest {
                 .build();
         ReflectionTestUtils.setField(club, "id", 1L);
         return club;
-    }
-
-    private ClubCreateRequest createCreateRequest(String name, String slug) {
-        return ClubCreateRequest.builder()
-                .name(name)
-                .authorId(1L)
-                .categoryId(1L)
-                .slug(slug)
-                .summary("Summary")
-                .recruitingStatus(RecruitingStatus.OPEN)
-                .activityCycle("WEEKLY")
-                .hasFee(false)
-                .isPublic(true)
-                .tags(List.of("tag1", "tag2"))
-                .build();
     }
 
     private ClubUpdateRequest createUpdateRequest(String name) {

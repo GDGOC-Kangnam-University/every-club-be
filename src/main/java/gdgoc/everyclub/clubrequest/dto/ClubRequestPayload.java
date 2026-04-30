@@ -35,7 +35,7 @@ public record ClubRequestPayload(
         boolean hasFee,
         @Schema(description = "공개 여부", example = "false")
         boolean isPublic,
-        @Schema(description = "요청한 태그 id 목록", example = "[3, 7, 11]")
-        List<Long> tagIds
+        @Schema(description = "요청한 태그 이름 목록", example = "[\"개발\", \"스터디\", \"친목\"]")
+        List<String> tags
 ) {
 }

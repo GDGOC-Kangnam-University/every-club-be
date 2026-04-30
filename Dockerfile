@@ -1,9 +1,14 @@
 # Build stage
 FROM eclipse-temurin:17-jdk AS build
 WORKDIR /app
-COPY . .
+
+COPY gradlew settings.gradle build.gradle ./
+COPY gradle ./gradle
 RUN sed -i 's/\r$//' gradlew
 RUN chmod +x gradlew
+RUN ./gradlew dependencies --no-daemon
+
+COPY src ./src
 RUN ./gradlew bootJar --no-daemon
 
 # Runtime stage
