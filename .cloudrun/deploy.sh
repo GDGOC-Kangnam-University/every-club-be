@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 # --- LOAD ENVIRONMENT VARIABLES ---
 if [ -f .env.sh ]; then
@@ -8,58 +9,73 @@ fi
 # --- CONFIGURATION (Required) ---
 : "${PROJECT_ID:?PROJECT_ID is required. Set it in .env.sh}"
 : "${REGION:?REGION is required. Set it in .env.sh}"
-: "${DB_HOST:?DB_HOST is required. Set it in .env.sh}"
-: "${DB_USER:?DB_USER is required. Set it in .env.sh}"
-: "${DB_PASS:?DB_PASS is required. Set it in .env.sh}"
-: "${DB_NAME:?DB_NAME is required. Set it in .env.sh}"
-: "${JWT_SECRET:?JWT_SECRET is required. Set it in .env.sh}"
-
-# --- SMTP CONFIG (Required) ---
-: "${SMTP_HOST:?SMTP_HOST is required}"
-: "${SMTP_PORT:?SMTP_PORT is required}"
-: "${SMTP_USERNAME:?SMTP_USERNAME is required}"
-: "${SMTP_PASSWORD:?SMTP_PASSWORD is required}"
-
-# --- S3 CONFIG (Required) ---
-: "${S3_ENDPOINT:?S3_ENDPOINT is required}"
-: "${S3_ACCESS_KEY:?S3_ACCESS_KEY is required}"
-: "${S3_SECRET_KEY:?S3_SECRET_KEY is required}"
-: "${S3_BUCKET:?S3_BUCKET is required}"
+: "${IMAGE:?IMAGE is required. Pass it from CI or set it in .env.sh}"
 
 SERVICE_NAME="every-club-be"
-IMAGE="gcr.io/${PROJECT_ID}/${SERVICE_NAME}"
 
 echo "🚀 Deploying $SERVICE_NAME to $REGION..."
 
-# 1. Build & Push Image using Cloud Build
-gcloud builds submit --tag "$IMAGE" --project "$PROJECT_ID"
-
-# 2. Deploy to Cloud Run (1st Gen, Optimized for Free Tier)
-gcloud run deploy "$SERVICE_NAME" \
-  --image "$IMAGE" \
+service_exists=false
+service_json_file="$(mktemp)"
+existing_profiles=""
+if gcloud run services describe "$SERVICE_NAME" \
   --region "$REGION" \
-  --platform managed \
-  --allow-unauthenticated \
-  --port 8080 \
-  --cpu 0.25 \
-  --memory 512Mi \
-  --min-instances 0 \
-  --max-instances 1 \
-  --cpu-throttling \
-  --set-env-vars "SPRING_PROFILES_ACTIVE=prod" \
-  --set-env-vars "DATABASE_URL=jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}" \
-  --set-env-vars "DATABASE_USERNAME=${DB_USER}" \
-  --set-env-vars "DATABASE_PASSWORD=${DB_PASS}" \
-  --set-env-vars "JWT_SECRET=${JWT_SECRET}" \
-  --set-env-vars "SMTP_HOST=${SMTP_HOST}" \
-  --set-env-vars "SMTP_PORT=${SMTP_PORT}" \
-  --set-env-vars "SMTP_USERNAME=${SMTP_USERNAME}" \
-  --set-env-vars "SMTP_PASSWORD=${SMTP_PASSWORD}" \
-  --set-env-vars "S3_ENDPOINT=${S3_ENDPOINT}" \
-  --set-env-vars "S3_ACCESS_KEY=${S3_ACCESS_KEY}" \
-  --set-env-vars "S3_SECRET_KEY=${S3_SECRET_KEY}" \
-  --set-env-vars "S3_BUCKET=${S3_BUCKET}" \
-  --timeout 300 \
-  --project "$PROJECT_ID"
+  --project "$PROJECT_ID" \
+  --format=json >"$service_json_file" 2>/dev/null; then
+  service_exists=true
+  export SERVICE_JSON_FILE="$service_json_file"
+  existing_profiles="$(
+    python3 - <<'PY'
+import json
+import os
+from pathlib import Path
+
+path = Path(os.environ["SERVICE_JSON_FILE"])
+data = json.loads(path.read_text())
+containers = (((data.get("spec") or {}).get("template") or {}).get("spec") or {}).get("containers") or []
+
+for container in containers:
+    for env in container.get("env") or []:
+        if env.get("name") == "SPRING_PROFILES_ACTIVE":
+            print(env.get("value", ""))
+            raise SystemExit(0)
+PY
+  )"
+fi
+
+spring_profiles_active="cloud-run"
+if [ -n "${existing_profiles}" ]; then
+  case ",${existing_profiles}," in
+    *,cloud-run,*) spring_profiles_active="${existing_profiles}" ;;
+    *) spring_profiles_active="${existing_profiles},cloud-run" ;;
+  esac
+fi
+
+if [ "$service_exists" = true ]; then
+  gcloud run services update "$SERVICE_NAME" \
+    --image "$IMAGE" \
+    --region "$REGION" \
+    --update-env-vars "^|^SPRING_PROFILES_ACTIVE=${spring_profiles_active}" \
+    --project "$PROJECT_ID"
+else
+  full_env_vars="SPRING_PROFILES_ACTIVE=${spring_profiles_active}|DATABASE_URL=jdbc:postgresql://${DB_HOST}:5432/${DB_NAME}|DATABASE_USERNAME=${DB_USER}|DATABASE_PASSWORD=${DB_PASS}|JWT_SECRET=${JWT_SECRET}|SMTP_HOST=${SMTP_HOST}|SMTP_PORT=${SMTP_PORT}|SMTP_USERNAME=${SMTP_USERNAME}|SMTP_PASSWORD=${SMTP_PASSWORD}|S3_ENDPOINT=${S3_ENDPOINT}|S3_ACCESS_KEY=${S3_ACCESS_KEY}|S3_SECRET_KEY=${S3_SECRET_KEY}|S3_BUCKET=${S3_BUCKET}"
+
+  gcloud run deploy "$SERVICE_NAME" \
+    --image "$IMAGE" \
+    --region "$REGION" \
+    --platform managed \
+    --allow-unauthenticated \
+    --port 8080 \
+    --cpu 0.25 \
+    --memory 512Mi \
+    --min-instances 0 \
+    --max-instances 1 \
+    --cpu-throttling \
+    --set-env-vars "^|^${full_env_vars}" \
+    --timeout 300 \
+    --project "$PROJECT_ID"
+fi
+
+rm -f "$service_json_file"
 
 echo "✨ Deployment Finished!"

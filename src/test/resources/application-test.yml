@@ -34,4 +34,3 @@ spring:
     enabled: false
     ignore-migration-patterns: "*:ignored"
     locations: classpath:db/migration
-
