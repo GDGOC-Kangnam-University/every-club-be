@@ -26,7 +26,11 @@ graph LR
 
     %% External Entities
     Client["🖥️ Client / Frontend"]
-    GHA["⚙️ GitHub Actions"]
+    
+    %% GitHub Boundary
+    subgraph GitHub ["🐙 GitHub"]
+        GHA["⚙️ GitHub Actions<br/>(Build & Deploy)"]
+    end
 
     %% Google Cloud Platform Boundary
     subgraph GCP ["☁️ Google Cloud Platform"]
@@ -45,7 +49,6 @@ graph LR
 
         %% Managed Services
         subgraph Managed ["🛠️ Managed Services"]
-            CB["🔨 Cloud Build"]
             AR["📦 Artifact Registry"]
             SM["🔐 Secret Manager"]
             CL["📋 Cloud Logging"]
@@ -55,11 +58,10 @@ graph LR
     %% Network & Data Flow
     Client -->|HTTPS| CR
     
-    GHA -->|1. Trigger Build| CB
+    GHA -->|1. Build & Push Image| AR
     GHA -->|3. Deploy & Update Secrets| CR
     
-    CB -->|2. Push Image| AR
-    AR -.->|Pull Image| CR
+    AR -.->|2. Pull Image| CR
 
     CR ==>|Direct VPC Egress - JDBC Private IP| GCE
     
@@ -67,11 +69,13 @@ graph LR
     CR -.->|Structured Logs| CL
 
     %% 서브그래프 배경 및 텍스트 색상 강제 (검은색 텍스트 유지)
+    style GitHub fill:#f6f8fa,stroke:#24292e,stroke-width:2px,color:#000000
     style GCP fill:#f8f9fa,stroke:#dadce0,stroke-width:2px,color:#000000
     style Region fill:#e8f0fe,stroke:#1a73e8,stroke-width:2px,stroke-dasharray: 5 5,color:#000000
     style VPC fill:#e6f4ea,stroke:#1e8e3e,stroke-width:2px,color:#000000
     style Subnet fill:#ceead6,stroke:#1e8e3e,stroke-width:1px,stroke-dasharray: 5 5,color:#000000
     style Managed fill:#fef7e0,stroke:#f29900,stroke-width:2px,stroke-dasharray: 5 5,color:#000000
+
 ```
 
 ### 핵심 인프라 결정 사항
