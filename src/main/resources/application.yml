@@ -85,10 +85,13 @@ jwt:
 
 ---
 
+server:
+  forward-headers-strategy: framework
+
 spring:
   config:
     activate:
-      on-profile: prod
+      on-profile: prod | cloud-run
   datasource:
     url: ${DATABASE_URL}
     username: ${DATABASE_USERNAME}
