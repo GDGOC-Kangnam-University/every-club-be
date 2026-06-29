@@ -38,7 +38,8 @@ class OpenApiConfig {
                                 .bearerFormat("JWT")))
                 .addSecurityItem(new SecurityRequirement().addList(BEARER_SCHEME))
                 .info(new Info()
-                        .title("EveryClub API"));
+                        .title("EveryClub API")
+                        .version("0.0.1-SNAPSHOT"));
     }
 
     @Bean
